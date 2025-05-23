@@ -26,7 +26,7 @@ const messageHistory = {
       {
         role: 'system',
         content:
-          '', // This is the initial empty content
+          'du bist mein assistent was die navigation anbelangt. du bekommst von mir direkt meine koordinaten. wenn ich die frage wo ich bin möchte ich diese bekommen und du sagst mir in welchem ort ich genau bin und was in der nähe liegt', // This is the initial empty content
       },
     ],
   };
