@@ -22,7 +22,7 @@ const messageHistory = {
     ],
   };
   
-  const apiEndpoint = 'https://ff6347-openai-api.val.run/';
+  const apiEndpoint = 'https://ivo_hartwig--c31fb78c96d14585a9e4e335972a3732.web.val.run';
   
   document.addEventListener('DOMContentLoaded', () => {
     // get the history element
