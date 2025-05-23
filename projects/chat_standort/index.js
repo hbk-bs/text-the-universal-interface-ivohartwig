@@ -11,20 +11,49 @@
 // What happens if the context gets to long?
 // What happens if the chat-history window get s to full (scolling)
 
+async function getCurrentPosition() {
+  return new Promise((resolve, reject) => {
+    navigator.geolocation.getCurrentPosition(
+      (pos) => resolve(pos.coords),
+      (err) => reject(err)
+    );
+  });
+}
+
 const messageHistory = {
     // messages: [{role: user | assistant | system; content: string}]
     messages: [
       {
         role: 'system',
         content:
-          'du bist ein gieriger pirat mit gutem humor wie captain jack sparrow. bleibe immer in der rolle ',
+          '', // This is the initial empty content
       },
     ],
   };
   
   const apiEndpoint = 'https://ivo_hartwig--c31fb78c96d14585a9e4e335972a3732.web.val.run';
   
-  document.addEventListener('DOMContentLoaded', () => {
+  document.addEventListener('DOMContentLoaded', async () => {
+    try {
+      const position = await getCurrentPosition();
+      const locationString = `Current location: Latitude ${position.latitude}, Longitude ${position.longitude}.`;
+      // This is where the content is updated:
+      if (messageHistory.messages[0] && messageHistory.messages[0].role === 'system') {
+        messageHistory.messages[0].content = locationString; 
+      } else {
+        // Fallback if the system message isn't the first one or doesn't exist
+        messageHistory.messages.unshift({ role: 'system', content: locationString });
+      }
+    } catch (error) {
+      console.error("Error getting location:", error);
+      // Optionally inform the user or set a default system message
+      if (messageHistory.messages[0] && messageHistory.messages[0].role === 'system') {
+        messageHistory.messages[0].content = "Could not retrieve location.";
+      } else {
+        messageHistory.messages.unshift({ role: 'system', content: "Could not retrieve location." });
+      }
+    }
+
     // get the history element
     const chatHistoryElement = document.querySelector('.chat-history');
     const inputElement = document.querySelector('input');
@@ -82,30 +111,30 @@ const messageHistory = {
     });
     return htmlStrings.join('');
   }
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
