@@ -36,10 +36,27 @@ main{
 
 .chat-history > .message.assistant {
     align-self: flex-start;
+    background-color: #e4e4e4;
+    padding: 8px 12px;
+    border-radius: 12px 12px 12px 0;
+    max-width: 80%;
 }
 
 .chat-history > .message.user {
     align-self: flex-end;
+    background-color: #dcf8c6;
+    padding: 8px 12px;
+    border-radius: 12px 12px 0 12px;
+    max-width: 80%;
+}
+
+/* Add styling for images within messages */
+.message img {
+    max-width: 250px;
+    max-height: 200px;
+    border-radius: 8px;
+    object-fit: contain;
+    margin-top: 5px;
 }
 
 form {
