@@ -87,18 +87,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Store the image URL for display purposes
         const imageUrl = base64Image;
         
-        // For the LLM API, we'll use a text description instead of the image object
-        // since the API expects string content
-        const imageDescription = `[Bild hochgeladen: ${file.name}, Größe: ${Math.round(file.size/1024)} KB]`;
+        // Display the image in the chat without sending to AI
+        displayMessageWithImage('user', imageUrl);
         
-        // Add image message to history with text content for API compatibility
+        // Add the "Wo bin ich?" question to message history for the AI
+        // but don't display it in the chat
+        const locationQuestion = "Wo bin ich?";
         messageHistory.messages.push({ 
           role: 'user', 
-          content: imageDescription
+          content: locationQuestion,
+          hidden: true // Mark as hidden for rendering logic
         });
-        
-        // Display the image in the chat
-        displayMessageWithImage('user', imageUrl);
         
         // Get LLM response
         await getLLMResponse();
@@ -149,13 +148,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   function renderChatHistory() {
     chatHistoryElement.innerHTML = '';
     messageHistory.messages.forEach((msg) => {
-      if (msg.role !== 'system') {
-        // Check if this is an image message (based on content format)
-        const isImageMessage = typeof msg.content === 'string' && 
-                              msg.content.startsWith('[Bild hochgeladen:');
-        
-        if (isImageMessage && msg.imageUrl) {
-          // If we have stored an imageUrl property, use it for display
+      if (msg.role !== 'system' && !msg.hidden) {
+        // Only render messages that aren't hidden
+        // Check if this is an image message (based on imageUrl property)
+        if (msg.imageUrl) {
+          // If we have stored an imageUrl property, display as image
           displayMessageWithImage(msg.role, msg.imageUrl);
         } else {
           // Otherwise just display as text
@@ -168,10 +165,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   async function getLLMResponse() {
     try {
+      // Create a filtered copy of message history that excludes any message with imageUrl
+      // This prevents API errors from messages without content property
+      const apiMessageHistory = {
+        messages: messageHistory.messages.filter(msg => !msg.imageUrl)
+      };
+      
       const response = await fetch(llmApiEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(messageHistory),
+        body: JSON.stringify(apiMessageHistory),
       });
 
       if (!response.ok) {
@@ -188,22 +191,48 @@ document.addEventListener('DOMContentLoaded', async () => {
       ) {
         const assistantMessage = json.completion.choices[0].message;
         messageHistory.messages.push(assistantMessage);
+        
+        // Just append the new message directly instead of re-rendering everything
+        displayMessage(assistantMessage.role, assistantMessage.content);
       } else {
         console.error("Unerwartete Antwortstruktur vom LLM:", json);
-        messageHistory.messages.push({
+        const errorMessage = {
           role: 'assistant',
-          content: 'Entschuldigung, ich habe ein Problem mit der Verarbeitung der Antwort.',
-        });
+          content: 'Entschuldigung, ich habe ein Problem mit der Verarbeitung der Antwort.'
+        };
+        messageHistory.messages.push(errorMessage);
+        
+        // Just append the error message
+        displayMessage(errorMessage.role, errorMessage.content);
       }
     } catch (error) {
       console.error("Fehler bei der Kommunikation mit dem LLM:", error);
-      messageHistory.messages.push({
+      const errorMessage = {
         role: 'assistant',
-        content: `Ein Fehler ist aufgetreten: ${error.message}`,
-      });
+        content: `Ein Fehler ist aufgetreten: ${error.message}`
+      };
+      messageHistory.messages.push(errorMessage);
+      
+      // Just append the error message
+      displayMessage(errorMessage.role, errorMessage.content);
     }
-    renderChatHistory();
+    // Remove the renderChatHistory call
   }
+
+  // Update form submission to not re-render everything
+  formElement.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const content = inputElement.value.trim();
+    if (!content) return;
+
+    inputElement.value = '';
+    messageHistory.messages.push({ role: 'user', content: content });
+    
+    // Just append the new user message
+    displayMessage('user', content);
+    
+    await getLLMResponse();
+  });
 
   try {
     const position = await getCurrentPosition();
@@ -231,18 +260,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     displayMessage('assistant', 'Hallo! Ich bin dein Navigationsassistent, konnte deinen Standort aber leider nicht bestimmen. Wie kann ich dir trotzdem helfen?');
     displayMessage('system-info', `Standortfehler: ${error.message}`, true);
   }
-
-  formElement.addEventListener('submit', async (event) => {
-    event.preventDefault();
-    const content = inputElement.value.trim();
-    if (!content) return;
-
-    inputElement.value = '';
-    messageHistory.messages.push({ role: 'user', content: content });
-    renderChatHistory();
-
-    await getLLMResponse();
-  });
 });
 
 
