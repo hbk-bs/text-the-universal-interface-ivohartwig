@@ -1,0 +1,78 @@
+*{
+    box-sizing: border-box;
+    padding: 0;
+    margin: 0;
+}
+
+html,
+body{
+    height: 100%;
+    font-family: system-ui, sans-serif;
+    font-weight: normal;
+}
+
+main{
+    width: 700px;
+    height: 100%;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 8px;
+}
+
+.chat-history{
+    width: 100%;
+    height: 100px;
+    background-color: white;
+    flex-grow: 1;
+    display: flex;
+    align-items: flex-end;
+    flex-direction: column;
+    gap: 16px;
+    overflow-y: auto;
+    padding: 16px;
+}
+
+.chat-history > .message.assistant {
+    align-self: flex-start;
+    background-color: #e4e4e4;
+    padding: 8px 12px;
+    border-radius: 12px 12px 12px 0;
+    max-width: 80%;
+}
+
+.chat-history > .message.user {
+    align-self: flex-end;
+    background-color: lightgray;
+    padding: 8px 12px;
+    border-radius: 12px 12px 0 12px;
+    max-width: 80%;
+}
+
+/* Add styling for images within messages */
+.message img {
+    max-width: 250px;
+    max-height: 200px;
+    border-radius: 8px;
+    object-fit: contain;
+    margin-top: 5px;
+}
+
+form {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+}
+
+input[type='text']{
+  flex-grow: 1;
+  height: 32px;
+}
+
+button {
+    height: 100%;
+}
+
