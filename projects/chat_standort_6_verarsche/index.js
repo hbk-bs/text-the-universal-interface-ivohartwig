@@ -245,7 +245,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const greetingMessage = {
       role: 'assistant',
-      content: 'Hallo! Ich bin dein Navigationsassistent. Du kannst mir gerne ein aktuelles Bild von deiner umgebung schicken, ich sage dir wo du bist :) ',
+      content: 'Hallo! Ich bin dein Navigationsassistent. Du kannst mir gerne ein aktuelles Bild von deiner umgebung schicken, ich sage dir wo du bist :)) ',
     };
     messageHistory.messages.push(greetingMessage);
     displayMessage(greetingMessage.role, greetingMessage.content);
