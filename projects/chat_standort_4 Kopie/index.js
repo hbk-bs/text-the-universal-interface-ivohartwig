@@ -11,27 +11,32 @@ async function getCurrentPosition() {
   });
 }
 
-async function getDetailedLocationFromServer(latitude, longitude) {
-  const denoServerUrl = 'http://localhost:8001/api/geocode';
+// NEUE FUNKTION: Direkter Aufruf der OpenStreetMap Nominatim API
+async function getDetailedLocationFromNominatim(latitude, longitude) {
+  // Die öffentliche Nominatim Reverse Geocoding API
+  const nominatimUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`;
+  
   try {
-    const response = await fetch(denoServerUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ latitude, longitude }),
+    const response = await fetch(nominatimUrl, {
+      method: 'GET', // Nominatim verwendet GET für Reverse Geocoding
+      headers: {
+        // Es ist gut, einen User-Agent anzugeben, wie von Nominatim empfohlen
+        'User-Agent': 'YourAppName/1.0 (your_email@example.com)' 
+      }
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({
-        error: `Server-Antwort: ${response.status}`,
-      }));
-      console.error("Fehler beim Abrufen des detaillierten Standorts vom Deno-Server:", errorData);
-      return `Koordinaten: Lat ${latitude}, Lon ${longitude} (Detailabruf fehlgeschlagen: ${errorData.error || response.statusText})`;
+      // Nominatim gibt oft sinnvolle Fehlercodes zurück
+      const errorText = await response.text();
+      console.error("Fehler beim Abrufen des detaillierten Standorts von Nominatim:", response.status, errorText);
+      return `Koordinaten: Lat ${latitude}, Lon ${longitude} (Detailabruf fehlgeschlagen: ${response.status} - ${errorText.substring(0, 50)}...)`;
     }
 
     const data = await response.json();
-    return data.placeName || `Koordinaten: Lat ${latitude}, Lon ${longitude} (Kein Name vom Server empfangen)`;
+    // 'display_name' ist das Feld, das den vollen Adressstring enthält
+    return data.display_name || `Koordinaten: Lat ${latitude}, Lon ${longitude} (Kein Name von Nominatim empfangen)`;
   } catch (error) {
-    console.error("Client-Fehler beim Abrufen des detaillierten Standorts:", error);
+    console.error("Client-Fehler beim Abrufen des detaillierten Standorts von Nominatim:", error);
     return `Koordinaten: Lat ${latitude}, Lon ${longitude} (Client-Fehler bei Detailabruf: ${error.message})`;
   }
 }
@@ -80,7 +85,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   try {
     const position = await getCurrentPosition();
-    const detailedPlaceName = await getDetailedLocationFromServer(position.latitude, position.longitude);
+    // ÄNDERUNG: Aufruf der neuen Funktion
+    const detailedPlaceName = await getDetailedLocationFromNominatim(position.latitude, position.longitude);
 
     const systemPromptContent = `Du bist mein freundlicher und präziser Navigationsassistent. Meine aktuelle Position ist: ${detailedPlaceName} (Koordinaten: Lat ${position.latitude}, Lon ${position.longitude}). Antworte auf Fragen zu meinem Standort, zu Orten in der Nähe oder zu Wegbeschreibungen. Sei hilfsbereit und gib klare Informationen.`;
 
@@ -151,16 +157,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderChatHistory();
   });
 });
-
-
-
-
-
-
-
-
-
-
 
 
 
