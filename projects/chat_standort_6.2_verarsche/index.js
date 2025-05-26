@@ -239,7 +239,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     // ÄNDERUNG: Aufruf der neuen Funktion
     const detailedPlaceName = await getDetailedLocationFromNominatim(position.latitude, position.longitude);
 
-    const systemPromptContent = `Du bist mein freundlicher und präziser Navigationsassistent. Meine aktuelle Position ist: ${detailedPlaceName} (Koordinaten: Lat ${position.latitude}, Lon ${position.longitude}). Antworte auf Fragen zu meinem Standort, zu Orten in der Nähe oder zu Wegbeschreibungen. Sei hilfsbereit und gib klare Informationen. Du kannst auch hochgeladene Bilder analysieren und bei Erkennungsaufgaben helfen.`;
+    // Verbesserter System-Prompt mit ausführlichen OpenStreetMap-Daten
+    const systemPromptContent = `Du bist mein freundlicher und präziser Navigationsassistent. 
+    
+    WICHTIG - NUTZERDATEN VON OPENSTREETMAP:
+    - Aktueller Standort: ${detailedPlaceName}
+    - Genaue Koordinaten: Lat ${position.latitude}, Lon ${position.longitude}
+    
+    Nutze diese OpenStreetMap-Daten für sämtliche Standortanfragen. Antworte auf Fragen zu meinem Standort, zu Orten in der Nähe oder zu Wegbeschreibungen. Sei hilfsbereit und gib klare Informationen. Du kannst auch hochgeladene Bilder analysieren und bei Erkennungsaufgaben helfen.`;
 
     messageHistory.messages.unshift({ role: 'system', content: systemPromptContent });
 
