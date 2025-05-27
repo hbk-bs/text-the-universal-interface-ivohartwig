@@ -1,3 +1,42 @@
+import {getDetailedLocationFromNominatim } from './osm-api.js';
+import { fileToDataURL } from './generate-data-uri.js';
+
+const llmImageApiEndpoint = 'https://ivo-openai-api-images.val.run/';
+const apiEndpoint = 'https://ivo-openai-api.val.run/';
+
+
+
+const imageApiPrompt = {
+  response_format: {type: 'json_object'},
+  messages:[{
+    role: 'system',
+    content: 'Du bist ein freundlicher und präziser Navigationsassistent. Du bekommst ein Bild von mir, beschreibe was du auf diesem bild siehst, wo könnte es sein? only respond in JSON {result: string}'
+  },
+	{
+    role: 'user',
+    // THIS IS IMPORTANT
+    // the content is not a string anymore
+    // we send a specific object that contains the image data url
+    content: [
+      {
+        type: 'image_url',
+        image_url: {
+          url: '' // this will be filled with the base64 data URL of the image,
+        },
+      },
+    ],
+  },
+]
+}
+
+//imageApiPrompt.messages.at(-1).content.at(0).image_url.url = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR42mP8//8/AwAI/wH+9Q4AAAAASUVORK5CYII='; // Example base64 image data URL
+
+const messageHistory = {
+  messages: [],
+};
+
+
+
 async function getCurrentPosition() {
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) {
@@ -11,51 +50,20 @@ async function getCurrentPosition() {
   });
 }
 
-// NEUE FUNKTION: Direkter Aufruf der OpenStreetMap Nominatim API
-async function getDetailedLocationFromNominatim(latitude, longitude) {
-  // Die öffentliche Nominatim Reverse Geocoding API
-  const nominatimUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`;
-  
-  try {
-    const response = await fetch(nominatimUrl, {
-      method: 'GET', // Nominatim verwendet GET für Reverse Geocoding
-      headers: {
-        // Es ist gut, einen User-Agent anzugeben, wie von Nominatim empfohlen
-        'User-Agent': 'YourAppName/1.0 (your_email@example.com)' 
-      }
-    });
 
-    if (!response.ok) {
-      // Nominatim gibt oft sinnvolle Fehlercodes zurück
-      const errorText = await response.text();
-      console.error("Fehler beim Abrufen des detaillierten Standorts von Nominatim:", response.status, errorText);
-      return `Koordinaten: Lat ${latitude}, Lon ${longitude} (Detailabruf fehlgeschlagen: ${response.status} - ${errorText.substring(0, 50)}...)`;
-    }
 
-    const data = await response.json();
-    // 'display_name' ist das Feld, das den vollen Adressstring enthält
-    return data.display_name || `Koordinaten: Lat ${latitude}, Lon ${longitude} (Kein Name von Nominatim empfangen)`;
-  } catch (error) {
-    console.error("Client-Fehler beim Abrufen des detaillierten Standorts von Nominatim:", error);
-    return `Koordinaten: Lat ${latitude}, Lon ${longitude} (Client-Fehler bei Detailabruf: ${error.message})`;
-  }
-}
+// // Function to convert image file to base64
+// function fileToBase64(file) {
+//   return new Promise((resolve, reject) => {
+//     const reader = new FileReader();
+//     reader.readAsDataURL(file);
+//     reader.onload = () => resolve(reader.result);
+//     reader.onerror = error => reject(error);
+//   });
+// }
 
-// Function to convert image file to base64
-function fileToBase64(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = error => reject(error);
-  });
-}
 
-const messageHistory = {
-  messages: [],
-};
 
-const llmApiEndpoint = 'https://ivo_hartwig--c31fb78c96d14585a9e4e335972a3732.web.val.run';
 
 document.addEventListener('DOMContentLoaded', async () => {
   const chatHistoryElement = document.querySelector('.chat-history');
@@ -82,22 +90,63 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (event.target.files && event.target.files[0]) {
       const file = event.target.files[0];
       try {
-        const base64Image = await fileToBase64(file);
+        // Convert file to base64
+        const base64Image =  await fileToDataURL(file)
         
-        // Store the image URL for display purposes
-        const imageUrl = base64Image;
+        // Create an image element for display
+        const imageElement = document.createElement('img');
+        imageElement.src = base64Image;
+        imageElement.alt = "Uploaded image";
+        imageElement.style.maxWidth = '100%';
+        imageElement.style.maxHeight = '250px';
         
-        // Display the image in the chat without sending to AI
-        displayMessageWithImage('user', imageUrl);
+        // Create a user message div
+        const messageDiv = document.createElement('div');
+        messageDiv.classList.add('message', 'user');
+        messageDiv.appendChild(imageElement);
+        chatHistoryElement.appendChild(messageDiv);
+        chatHistoryElement.scrollTop = chatHistoryElement.scrollHeight;
         
-        // Add the "Wo bin ich?" question to message history for the AI
-        // but don't display it in the chat
-        const locationQuestion = "Wo bin ich?";
-        messageHistory.messages.push({ 
-          role: 'user', 
-          content: locationQuestion,
-          hidden: true // Mark as hidden for rendering logic
+
+        imageApiPrompt.messages.at(-1).content.at(0).image_url.url = base64Image; // Update the image URL in the prompt
+
+        const imageResponse = await fetch(llmImageApiEndpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(imageApiPrompt),
         });
+
+        if (!imageResponse.ok) {
+          const errorText = await imageResponse.text();
+          console.error("Fehler beim Abrufen der Bildantwort:", imageResponse.status, errorText);
+          throw new Error(`LLM API Fehler: ${imageResponse.status} - ${errorText.substring(0, 100)}...`);
+        }
+
+        console.log("Bildantwort erfolgreich empfangen");
+        const imageJson = await imageResponse.json();
+        console.log("Bildantwort JSON:", imageJson);
+
+        const resultString = imageJson.completion.choices[0].message.content;
+
+        const resultObject = JSON.parse(resultString);
+        console.log("Ergebnisobjekt:", resultObject);
+
+
+    
+
+        
+        // Add text question to message history without displaying it
+        messageHistory.messages.push({
+          role: 'assistant',
+          content: resultObject.result
+        });
+
+        messageHistory.messages.push({
+          role: 'user',
+          content: 'tell me where I am'
+        });
+
+        console.log("Aktualisierte messageHistory:", messageHistory.messages);
         
         // Get LLM response
         await getLLMResponse();
@@ -111,77 +160,93 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  function displayMessage(role, content, isError = false) {
+  // Helper function to display message with image
+  // function displayMessageWithImage(role, imageUrl) {
+  //   const messageDiv = document.createElement('div');
+  //   messageDiv.classList.add('message', role);
+    
+  //   // Create and add the image
+  //   const img = document.createElement('img');
+  //   img.src = imageUrl;
+  //   img.alt = "Bild";
+  //   img.style.maxWidth = '100%';
+  //   img.style.maxHeight = '250px';
+    
+  //   messageDiv.appendChild(img);
+  //   chatHistoryElement.appendChild(messageDiv);
+  //   chatHistoryElement.scrollTop = chatHistoryElement.scrollHeight;
+  // }
+
+  function displayMessage(role, messageContent, isError = false) {
     const messageDiv = document.createElement('div');
-    messageDiv.classList.add('message');
+    messageDiv.classList.add('message', role); // e.g. 'user', 'assistant'
     if (isError) {
       messageDiv.classList.add('error-message');
-    } else {
-      messageDiv.classList.add(role); // 'user', 'assistant', 'system-info'
     }
-    messageDiv.textContent = content;
-    chatHistoryElement.appendChild(messageDiv);
-    chatHistoryElement.scrollTop = chatHistoryElement.scrollHeight;
-  }
   
-  function displayMessageWithImage(role, imageUrl) {
-    const messageDiv = document.createElement('div');
-    messageDiv.classList.add('message', role);
-    
-    // Create and add the image
-    const img = document.createElement('img');
-    img.src = imageUrl;
-    img.alt = "Uploaded image";
-    messageDiv.appendChild(img);
-    
+    if (Array.isArray(messageContent)) { // Multi-part content (e.g., text and image)
+      messageContent.forEach(part => {
+        if (part.type === "text") {
+          const p = document.createElement('p');
+          p.textContent = part.text;
+          messageDiv.appendChild(p);
+        } else if (part.type === "image_url" && part.image_url && part.image_url.url) {
+          const img = document.createElement('img');
+          img.src = part.image_url.url; // This will be the base64 data URI
+          img.alt = (role === 'user') ? "Hochgeladenes Bild" : "Bild vom Assistenten";
+          // Optional: Add styling for the image, e.g., max-width
+          img.style.maxWidth = '100%';
+          img.style.maxHeight = '300px'; // Adjust as needed
+          img.style.borderRadius = '5px';
+          img.style.marginTop = '5px';
+          messageDiv.appendChild(img);
+        }
+      });
+    } else if (typeof messageContent === 'string') { // Simple text content
+      messageDiv.textContent = messageContent;
+    } else if (messageContent === null || messageContent === undefined) {
+      // Handle cases where content might be unexpectedly null/undefined to prevent errors
+      messageDiv.textContent = isError ? "Fehler: Inhalt nicht verfügbar" : "";
+    }
+  
+  
     chatHistoryElement.appendChild(messageDiv);
     chatHistoryElement.scrollTop = chatHistoryElement.scrollHeight;
-    
-    // For existing messages where we're displaying an image, we might want to 
-    // store the imageUrl to help with re-rendering later
-    const latestMsg = messageHistory.messages[messageHistory.messages.length - 1];
-    if (latestMsg && latestMsg.role === role && !latestMsg.imageUrl) {
-      latestMsg.imageUrl = imageUrl; // Store the URL to help with re-rendering
-    }
   }
 
-  function renderChatHistory() {
-    chatHistoryElement.innerHTML = '';
-    messageHistory.messages.forEach((msg) => {
-      if (msg.role !== 'system' && !msg.hidden) {
-        // Only render messages that aren't hidden
-        // Check if this is an image message (based on imageUrl property)
-        if (msg.imageUrl) {
-          // If we have stored an imageUrl property, display as image
-          displayMessageWithImage(msg.role, msg.imageUrl);
-        } else {
-          // Otherwise just display as text
-          displayMessage(msg.role, msg.content);
-        }
-      }
-    });
-    chatHistoryElement.scrollTop = chatHistoryElement.scrollHeight;
-  }
+  // function renderChatHistory() {
+  //   chatHistoryElement.innerHTML = ''; // Clear existing messages
+  //   messageHistory.messages.forEach((msg) => {
+  //     if (msg.role !== 'system' && !msg.hidden) {
+  //       displayMessage(msg.role, msg.content); // msg.content is now string or array
+  //     }
+  //   });
+  //   chatHistoryElement.scrollTop = chatHistoryElement.scrollHeight;
+  // }
 
   async function getLLMResponse() {
     try {
-      // Create a filtered copy of message history that excludes any message with imageUrl
-      // This prevents API errors from messages without content property
-      const apiMessageHistory = {
-        messages: messageHistory.messages.filter(msg => !msg.imageUrl)
+      // messageHistory.messages now contains the correct structure for API
+      const apiRequestBody = {
+        messages: messageHistory.messages,
+        // temperature: 0.7, // You can add other parameters from your backend schema
+        // seed: 12345,
       };
-      
-      const response = await fetch(llmApiEndpoint, {
+  
+      const response = await fetch(llmImageApiEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(apiMessageHistory),
+        body: JSON.stringify(apiRequestBody), // Body now includes structured image messages
       });
-
+  
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`LLM API Fehler: ${response.status} - ${errorText}`);
+        // It's good to display the error in the chat
+        const errorForChat = `LLM API Fehler: ${response.status} - ${errorText.substring(0,100)}...`;
+        displayMessage('assistant', errorForChat, true);
+        throw new Error(errorForChat);
       }
-
+  
       const json = await response.json();
       if (
         json.completion &&
@@ -191,32 +256,22 @@ document.addEventListener('DOMContentLoaded', async () => {
       ) {
         const assistantMessage = json.completion.choices[0].message;
         messageHistory.messages.push(assistantMessage);
-        
-        // Just append the new message directly instead of re-rendering everything
-        displayMessage(assistantMessage.role, assistantMessage.content);
+        displayMessage(assistantMessage.role, assistantMessage.content); // Display assistant's response
       } else {
         console.error("Unerwartete Antwortstruktur vom LLM:", json);
-        const errorMessage = {
-          role: 'assistant',
-          content: 'Entschuldigung, ich habe ein Problem mit der Verarbeitung der Antwort.'
-        };
-        messageHistory.messages.push(errorMessage);
-        
-        // Just append the error message
-        displayMessage(errorMessage.role, errorMessage.content);
+        const errorMessageContent = 'Entschuldigung, ich habe ein Problem mit der Verarbeitung der Antwort.';
+        messageHistory.messages.push({ role: 'assistant', content: errorMessageContent });
+        displayMessage('assistant', errorMessageContent, true);
       }
     } catch (error) {
       console.error("Fehler bei der Kommunikation mit dem LLM:", error);
-      const errorMessage = {
-        role: 'assistant',
-        content: `Ein Fehler ist aufgetreten: ${error.message}`
-      };
-      messageHistory.messages.push(errorMessage);
-      
-      // Just append the error message
-      displayMessage(errorMessage.role, errorMessage.content);
+      // Ensure this error is also displayed in the chat
+      if (!error.message.startsWith("LLM API Fehler")) { // Avoid double display if already handled
+        const errorMessageContent = `Ein Fehler ist aufgetreten: ${error.message}`;
+        messageHistory.messages.push({ role: 'assistant', content: errorMessageContent });
+        displayMessage('assistant', errorMessageContent, true);
+      }
     }
-    // Remove the renderChatHistory call
   }
 
   // Update form submission to not re-render everything
