@@ -71,14 +71,134 @@ document.addEventListener('DOMContentLoaded', async () => {
   const formElement = document.querySelector('form');
   const imgButton = document.getElementById('img-button');
   const imageUpload = document.getElementById('image-upload');
+  const cameraButton = document.getElementById('camera-button');
+  const cameraContainer = document.getElementById('camera-container');
+  const cameraStream = document.getElementById('camera-stream');
+  const takePhotoButton = document.getElementById('take-photo');
+  const cancelPhotoButton = document.getElementById('cancel-photo');
 
-  if (!chatHistoryElement || !inputElement || !formElement || !imgButton || !imageUpload) {
+  let stream = null;
+
+  if (!chatHistoryElement || !inputElement || !formElement || !imgButton || !imageUpload ||
+      !cameraButton || !cameraContainer || !cameraStream || !takePhotoButton || !cancelPhotoButton) {
     console.error("Wichtige DOM-Elemente nicht gefunden!");
     if (chatHistoryElement) {
       chatHistoryElement.innerHTML = "<div class='message error-message'>Fehler: Chat-Interface konnte nicht initialisiert werden.</div>";
     }
     return;
   }
+
+  // Camera functions
+  async function startCamera() {
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' }, // Use the back camera if available
+        audio: false
+      });
+      cameraStream.srcObject = stream;
+      cameraContainer.style.display = 'flex';
+    } catch (err) {
+      console.error("Error accessing camera:", err);
+      displayMessage('system-info', `Kamera-Fehler: ${err.message}`, true);
+    }
+  }
+
+  function stopCamera() {
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      stream = null;
+    }
+    cameraContainer.style.display = 'none';
+  }
+
+  function capturePhoto() {
+    // Create a canvas to capture the photo
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    
+    // Set canvas dimensions to match video
+    canvas.width = cameraStream.videoWidth;
+    canvas.height = cameraStream.videoHeight;
+    
+    // Draw the current video frame onto the canvas
+    context.drawImage(cameraStream, 0, 0, canvas.width, canvas.height);
+    
+    // Convert the canvas to data URL
+    const dataURL = canvas.toDataURL('image/jpeg');
+    
+    // Stop camera stream
+    stopCamera();
+    
+    // Process the photo as we would with uploaded images
+    processImageDataURL(dataURL);
+  }
+
+  async function processImageDataURL(dataURL) {
+    // Create an image element for display
+    const imageElement = document.createElement('img');
+    imageElement.src = dataURL;
+    imageElement.alt = "Captured image";
+    imageElement.style.maxWidth = '100%';
+    imageElement.style.maxHeight = '250px';
+    
+    // Create a user message div
+    const messageDiv = document.createElement('div');
+    messageDiv.classList.add('message', 'user');
+    messageDiv.appendChild(imageElement);
+    chatHistoryElement.appendChild(messageDiv);
+    chatHistoryElement.scrollTop = chatHistoryElement.scrollHeight;
+    
+    // Update the image URL in the prompt
+    imageApiPrompt.messages.at(-1).content.at(0).image_url.url = dataURL;
+
+    try {
+      const imageResponse = await fetch(llmImageApiEndpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(imageApiPrompt),
+      });
+
+      if (!imageResponse.ok) {
+        const errorText = await imageResponse.text();
+        console.error("Fehler beim Abrufen der Bildantwort:", imageResponse.status, errorText);
+        throw new Error(`LLM API Fehler: ${imageResponse.status} - ${errorText.substring(0, 100)}...`);
+      }
+
+      console.log("Bildantwort erfolgreich empfangen");
+      const imageJson = await imageResponse.json();
+      console.log("Bildantwort JSON:", imageJson);
+
+      const resultString = imageJson.completion.choices[0].message.content;
+      const resultObject = JSON.parse(resultString);
+      console.log("Ergebnisobjekt:", resultObject);
+      
+      // Add text question to message history without displaying it
+      messageHistory.messages.push({
+        role: 'assistant',
+        content: resultObject.result
+      });
+
+      displayMessage('assistant', resultObject.result);
+
+      messageHistory.messages.push({
+        role: 'user',
+        content: 'tell me where I am'
+      });
+
+      console.log("Aktualisierte messageHistory:", messageHistory.messages);
+      
+      // Get LLM response
+      await getLLMResponse();
+    } catch (error) {
+      console.error("Fehler beim Verarbeiten des Bildes:", error);
+      displayMessage('system-info', `Bildfehler: ${error.message}`, true);
+    }
+  }
+
+  // Event listeners for camera
+  cameraButton.addEventListener('click', startCamera);
+  takePhotoButton.addEventListener('click', capturePhoto);
+  cancelPhotoButton.addEventListener('click', stopCamera);
 
   // Trigger file input when img button is clicked
   imgButton.addEventListener('click', () => {
@@ -92,139 +212,19 @@ document.addEventListener('DOMContentLoaded', async () => {
       try {
         // Convert file to base64
         const base64Image =  await fileToDataURL(file)
+        processImageDataURL(base64Image);
         
-        // Create an image element for display
-        const imageElement = document.createElement('img');
-        imageElement.src = base64Image;
-        imageElement.alt = "Uploaded image";
-        imageElement.style.maxWidth = '100%';
-        imageElement.style.maxHeight = '250px';
-        
-        // Create a user message div
-        const messageDiv = document.createElement('div');
-        messageDiv.classList.add('message', 'user');
-        messageDiv.appendChild(imageElement);
-        chatHistoryElement.appendChild(messageDiv);
-        chatHistoryElement.scrollTop = chatHistoryElement.scrollHeight;
-        
-
-        imageApiPrompt.messages.at(-1).content.at(0).image_url.url = base64Image; // Update the image URL in the prompt
-
-        const imageResponse = await fetch(llmImageApiEndpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(imageApiPrompt),
-        });
-
-        if (!imageResponse.ok) {
-          const errorText = await imageResponse.text();
-          console.error("Fehler beim Abrufen der Bildantwort:", imageResponse.status, errorText);
-          throw new Error(`LLM API Fehler: ${imageResponse.status} - ${errorText.substring(0, 100)}...`);
-        }
-
-        console.log("Bildantwort erfolgreich empfangen");
-        const imageJson = await imageResponse.json();
-        console.log("Bildantwort JSON:", imageJson);
-
-        const resultString = imageJson.completion.choices[0].message.content;
-
-        const resultObject = JSON.parse(resultString);
-        console.log("Ergebnisobjekt:", resultObject);
-
-
-    
-
-        
-        // Add text question to message history without displaying it
-        messageHistory.messages.push({
-          role: 'assistant',
-          content: resultObject.result
-        });
-
-        displayMessage('assistant', resultObject.result);  // <--- NEU
-
-
-        messageHistory.messages.push({
-          role: 'user',
-          content: 'tell me where I am'
-        });
-
-        console.log("Aktualisierte messageHistory:", messageHistory.messages);
-        
-        // Get LLM response
-        await getLLMResponse();
+        // Clear the file input for future uploads
+        event.target.value = '';
       } catch (error) {
         console.error("Fehler beim Verarbeiten des Bildes:", error);
         displayMessage('system-info', `Bildfehler: ${error.message}`, true);
+        event.target.value = '';
       }
-      
-      // Clear the file input for future uploads
-      event.target.value = '';
     }
   });
 
-  // Helper function to display message with image
-  // function displayMessageWithImage(role, imageUrl) {
-  //   const messageDiv = document.createElement('div');
-  //   messageDiv.classList.add('message', role);
-    
-  //   // Create and add the image
-  //   const img = document.createElement('img');
-  //   img.src = imageUrl;
-  //   img.alt = "Bild";
-  //   img.style.maxWidth = '100%';
-  //   img.style.maxHeight = '250px';
-    
-  //   messageDiv.appendChild(img);
-  //   chatHistoryElement.appendChild(messageDiv);
-  //   chatHistoryElement.scrollTop = chatHistoryElement.scrollHeight;
-  // }
-
   function displayMessage(role, messageContent, isError = false) {
-    const messageDiv = document.createElement('div');
-    messageDiv.classList.add('message', role); // e.g. 'user', 'assistant'
-    if (isError) {
-      messageDiv.classList.add('error-message');
-    }
-  
-    if (Array.isArray(messageContent)) { // Multi-part content (e.g., text and image)
-      messageContent.forEach(part => {
-        if (part.type === "text") {
-          const p = document.createElement('p');
-          p.textContent = part.text;
-          messageDiv.appendChild(p);
-        } else if (part.type === "image_url" && part.image_url && part.image_url.url) {
-          const img = document.createElement('img');
-          img.src = part.image_url.url; // This will be the base64 data URI
-          img.alt = (role === 'user') ? "Hochgeladenes Bild" : "Bild vom Assistenten";
-          // Optional: Add styling for the image, e.g., max-width
-          img.style.maxWidth = '100%';
-          img.style.maxHeight = '300px'; // Adjust as needed
-          img.style.borderRadius = '5px';
-          img.style.marginTop = '5px';
-          messageDiv.appendChild(img);
-        }
-      });
-    } else if (typeof messageContent === 'string') { // Simple text content
-      messageDiv.textContent = messageContent;
-    } else if (messageContent === null || messageContent === undefined) {
-      // Handle cases where content might be unexpectedly null/undefined to prevent errors
-      messageDiv.textContent = isError ? "Fehler: Inhalt nicht verfügbar" : "";
-    }
-  
-  
-    chatHistoryElement.appendChild(messageDiv);
-    chatHistoryElement.scrollTop = chatHistoryElement.scrollHeight;
-  }
-
-  // function renderChatHistory() {
-  //   chatHistoryElement.innerHTML = ''; // Clear existing messages
-  //   messageHistory.messages.forEach((msg) => {
-  //     if (msg.role !== 'system' && !msg.hidden) {
-  //       displayMessage(msg.role, msg.content); // msg.content is now string or array
-  //     }
-  //   });
-  //   chatHistoryElement.scrollTop = chatHistoryElement.scrollHeight;
   // }
 
   async function getLLMResponse() {
