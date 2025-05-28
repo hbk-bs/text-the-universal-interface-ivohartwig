@@ -42,7 +42,7 @@ main{
     max-width: 80%;
 }
 
-.chat-history > .message.user {
+chat-history > .message.user {
     align-self: flex-end;
     background-color: lightgray;
     padding: 8px 12px;
@@ -118,6 +118,11 @@ button {
 
 .camera-controls #cancel-photo {
     background-color: #f44336;
+    color: white;
+}
+
+.camera-controls #toggle-camera {
+    background-color: #2196F3;
     color: white;
 }
 

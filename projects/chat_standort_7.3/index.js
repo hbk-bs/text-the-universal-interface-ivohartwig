@@ -76,11 +76,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   const cameraStream = document.getElementById('camera-stream');
   const takePhotoButton = document.getElementById('take-photo');
   const cancelPhotoButton = document.getElementById('cancel-photo');
+  const toggleCameraButton = document.getElementById('toggle-camera');
 
   let stream = null;
+  let currentFacingMode = 'environment'; // Default to back camera
 
   if (!chatHistoryElement || !inputElement || !formElement || !imgButton || !imageUpload ||
-      !cameraButton || !cameraContainer || !cameraStream || !takePhotoButton || !cancelPhotoButton) {
+      !cameraButton || !cameraContainer || !cameraStream || !takePhotoButton || !cancelPhotoButton || !toggleCameraButton) {
     console.error("Wichtige DOM-Elemente nicht gefunden!");
     if (chatHistoryElement) {
       chatHistoryElement.innerHTML = "<div class='message error-message'>Fehler: Chat-Interface konnte nicht initialisiert werden.</div>";
@@ -89,18 +91,29 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // Camera functions
-  async function startCamera() {
+  async function startCamera(facingMode = currentFacingMode) {
+    // Stop any existing stream before starting a new one
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+    }
+    
     try {
       stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' }, // Use the back camera if available
+        video: { facingMode: facingMode },
         audio: false
       });
       cameraStream.srcObject = stream;
       cameraContainer.style.display = 'flex';
+      currentFacingMode = facingMode;
     } catch (err) {
       console.error("Error accessing camera:", err);
       displayMessage('system-info', `Kamera-Fehler: ${err.message}`, true);
     }
+  }
+
+  function toggleCamera() {
+    const newFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
+    startCamera(newFacingMode);
   }
 
   function stopCamera() {
@@ -196,9 +209,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // Event listeners for camera
-  cameraButton.addEventListener('click', startCamera);
+  cameraButton.addEventListener('click', () => startCamera());
   takePhotoButton.addEventListener('click', capturePhoto);
   cancelPhotoButton.addEventListener('click', stopCamera);
+  toggleCameraButton.addEventListener('click', toggleCamera);
 
   // Trigger file input when img button is clicked
   imgButton.addEventListener('click', () => {
