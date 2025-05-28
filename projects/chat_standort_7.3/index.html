@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>nIVOgation</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <main>
+        <div class="chat-history"></div>
+        <form>
+            <input type="text" name="content">
+            <button type="submit" id="send-button">send</button>
+            <button type="button" id="img-button">img</button>
+            <button type="button" id="camera-button">cam</button>
+            <input type="file" id="image-upload" accept="image/*" style="display:none">
+        </form>
+        <div id="camera-container" style="display:none">
+            <video id="camera-stream" autoplay playsinline></video>
+            <div class="camera-controls">
+                <button id="take-photo">Capture</button>
+                <button id="cancel-photo">Cancel</button>
+            </div>
+        </div>
+    </main>
+    <script type="module" src="index.js"></script>
+</body>
+</html>
