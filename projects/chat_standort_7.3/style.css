@@ -130,3 +130,12 @@ button {
 /* Add responsive styling for mobile */
 @media (max-width: 768px) {
     input[type='text']{
+        font-size: 16px; /* Prevents zoom on input focus in iOS */
+    }
+    
+    button {
+        min-width: 40px;
+        padding: 0 8px;
+    }
+}
+
