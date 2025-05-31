@@ -71,79 +71,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   const formElement = document.querySelector('form');
   const imgButton = document.getElementById('img-button');
   const imageUpload = document.getElementById('image-upload');
-  const cameraButton = document.getElementById('camera-button');
-  const cameraContainer = document.getElementById('camera-container');
-  const cameraStream = document.getElementById('camera-stream');
-  const takePhotoButton = document.getElementById('take-photo');
-  const cancelPhotoButton = document.getElementById('cancel-photo');
-  const toggleCameraButton = document.getElementById('toggle-camera');
 
-  let stream = null;
-  let currentFacingMode = 'environment'; // Default to back camera
-
-  if (!chatHistoryElement || !inputElement || !formElement || !imgButton || !imageUpload ||
-      !cameraButton || !cameraContainer || !cameraStream || !takePhotoButton || !cancelPhotoButton || !toggleCameraButton) {
+  if (!chatHistoryElement || !inputElement || !formElement || !imgButton || !imageUpload) {
     console.error("Wichtige DOM-Elemente nicht gefunden!");
     if (chatHistoryElement) {
       chatHistoryElement.innerHTML = "<div class='message error-message'>Fehler: Chat-Interface konnte nicht initialisiert werden.</div>";
     }
     return;
-  }
-
-  // Camera functions
-  async function startCamera(facingMode = currentFacingMode) {
-    // Stop any existing stream before starting a new one
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
-    }
-    
-    try {
-      stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: facingMode },
-        audio: false
-      });
-      cameraStream.srcObject = stream;
-      cameraContainer.style.display = 'flex';
-      currentFacingMode = facingMode;
-    } catch (err) {
-      console.error("Error accessing camera:", err);
-      displayMessage('system-info', `Kamera-Fehler: ${err.message}`, true);
-    }
-  }
-
-  function toggleCamera() {
-    const newFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
-    startCamera(newFacingMode);
-  }
-
-  function stopCamera() {
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
-      stream = null;
-    }
-    cameraContainer.style.display = 'none';
-  }
-
-  function capturePhoto() {
-    // Create a canvas to capture the photo
-    const canvas = document.createElement('canvas');
-    const context = canvas.getContext('2d');
-    
-    // Set canvas dimensions to match video
-    canvas.width = cameraStream.videoWidth;
-    canvas.height = cameraStream.videoHeight;
-    
-    // Draw the current video frame onto the canvas
-    context.drawImage(cameraStream, 0, 0, canvas.width, canvas.height);
-    
-    // Convert the canvas to data URL
-    const dataURL = canvas.toDataURL('image/jpeg');
-    
-    // Stop camera stream
-    stopCamera();
-    
-    // Process the photo as we would with uploaded images
-    processImageDataURL(dataURL);
   }
 
   async function processImageDataURL(dataURL) {
@@ -207,12 +141,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       displayMessage('system-info', `Bildfehler: ${error.message}`, true);
     }
   }
-
-  // Event listeners for camera
-  cameraButton.addEventListener('click', () => startCamera());
-  takePhotoButton.addEventListener('click', capturePhoto);
-  cancelPhotoButton.addEventListener('click', stopCamera);
-  toggleCameraButton.addEventListener('click', toggleCamera);
 
   // Trigger file input when img button is clicked
   imgButton.addEventListener('click', () => {
