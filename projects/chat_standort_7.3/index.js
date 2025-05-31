@@ -10,7 +10,7 @@ const imageApiPrompt = {
   response_format: {type: 'json_object'},
   messages:[{
     role: 'system',
-    content: 'Du bist ein freundlicher und präziser Navigationsassistent. Du bekommst ein Bild von mir, beschreibe was du auf diesem bild siehst. Sage mir anhand deiner Beschreibung wo sich dieses Bild aufgenommen wurde. only respond in JSON {result: string}'
+    content: 'Du bist ein freundlicher und präziser Navigationsassistent. Du bekommst ein Bild von mir, beschreibe was du auf diesem bild siehst. Sage mir anhand deiner Beschreibung wo sich dieses Bild aufgenommen wurde. only respond in JSON {result: string}. Antworte immer auf deutsch.'
   },
 	{
     role: 'user',
@@ -195,7 +195,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       messageHistory.messages.push({
         role: 'user',
-        content: 'tell me where I am'
+        content: 'sage mir wo ich bin.'
       });
 
       console.log("Aktualisierte messageHistory:", messageHistory.messages);
@@ -352,7 +352,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     - Aktueller Standort: ${detailedPlaceName}
     - Genaue Koordinaten: Lat ${position.latitude}, Lon ${position.longitude}
     
-    Nutze diese OpenStreetMap-Daten für sämtliche Standortanfragen. Antworte auf Fragen zu meinem Standort, zu Orten in der Nähe oder zu Wegbeschreibungen. Sei hilfsbereit und gib klare Informationen. Wenn ich dir ausserdem ein bild schicke möchte ich das du vermutungen anstellst wo das sein könnte. Beschreibe zudem was du in diesem bild siehst`;
+    Nutze diese OpenStreetMap-Daten für sämtliche Standortanfragen. Antworte auf Fragen zu meinem Standort, zu Orten in der Nähe oder zu Wegbeschreibungen. Sei hilfsbereit und gib klare Informationen. Wenn ich dir ausserdem ein bild schicke möchte ich das du vermutungen anstellst wo das sein könnte. Beschreibe zudem was du in diesem bild siehst. antworte immer auf deutsch.`;
 
     messageHistory.messages.unshift({ role: 'system', content: systemPromptContent });
 
