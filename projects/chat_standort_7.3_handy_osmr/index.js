@@ -1,10 +1,8 @@
-import {getDetailedLocationFromNominatim } from './osm-api.js';
+import { getDetailedLocationFromNominatim, calculateRouteToDestination } from './osmr-api.js';
 import { fileToDataURL } from './generate-data-uri.js';
 
 const llmImageApiEndpoint = 'https://ivo-openai-api-images.val.run/';
 const apiEndpoint = 'https://ivo-openai-api.val.run/';
-
-
 
 const imageApiPrompt = {
   response_format: {type: 'json_object'},
@@ -35,8 +33,6 @@ const messageHistory = {
   messages: [],
 };
 
-
-
 async function getCurrentPosition() {
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) {
@@ -49,21 +45,6 @@ async function getCurrentPosition() {
     );
   });
 }
-
-
-
-// // Function to convert image file to base64
-// function fileToBase64(file) {
-//   return new Promise((resolve, reject) => {
-//     const reader = new FileReader();
-//     reader.readAsDataURL(file);
-//     reader.onload = () => resolve(reader.result);
-//     reader.onerror = error => reject(error);
-//   });
-// }
-
-
-
 
 document.addEventListener('DOMContentLoaded', async () => {
   const chatHistoryElement = document.querySelector('.chat-history');
@@ -79,6 +60,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     return;
   }
+
+  // Globale Variable für die Position des Nutzers hinzufügen
+  let userPosition = null;
 
   async function processImageDataURL(dataURL) {
     // Create an image element for display
@@ -198,7 +182,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       messageDiv.textContent = isError ? "Fehler: Inhalt nicht verfügbar" : "";
     }
   
-  
     chatHistoryElement.appendChild(messageDiv);
     chatHistoryElement.scrollTop = chatHistoryElement.scrollHeight;
   }
@@ -234,8 +217,92 @@ document.addEventListener('DOMContentLoaded', async () => {
         json.completion.choices[0].message
       ) {
         const assistantMessage = json.completion.choices[0].message;
+        
+        // Prüfen auf Routenanfragen und Entfernungsfragen
+        if (userPosition) {
+          try {
+            const lastUserMessage = messageHistory.messages.find(msg => 
+              msg.role === 'user' && typeof msg.content === 'string');
+
+            if (lastUserMessage) {
+              const userQuery = lastUserMessage.content.toLowerCase();
+              console.log("Prüfe Anfrage auf Routeninformationen:", userQuery);
+              
+              // Verbesserte Erkennung von Routenanfragen
+              const routeKeywords = ['wie weit', 'wie lange', 'entfernung', 'distanz', 'route', 
+                                  'weg', 'fahrt', 'fahren', 'komme ich'];
+              const hasRouteKeyword = routeKeywords.some(keyword => userQuery.includes(keyword));
+                            
+              const prepositions = ['nach', 'zu', 'bis', 'in'];
+              const hasPreposition = prepositions.some(prep => userQuery.includes(prep + ' '));
+              
+              if (hasRouteKeyword && hasPreposition) {
+                console.log("Routenanfrage erkannt!");
+                
+                // Verbesserte Destination-Extraktion
+                let destination = '';
+                
+                // Suche erst nach der Präposition und nehme den Rest des Satzes
+                for (const prep of prepositions) {
+                  if (userQuery.includes(' ' + prep + ' ')) {
+                    const parts = userQuery.split(' ' + prep + ' ');
+                    if (parts.length > 1) {
+                      // Nehme alles nach der Präposition bis zum nächsten Satzende oder Fragezeichen
+                      let rawDestination = parts[1].split(/[?.!]|von|und|oder/)[0].trim();
+                      
+                      // Bereinige häufige Füllwörter am Ende
+                      rawDestination = rawDestination.replace(/\s+(jetzt|dann|heute|morgen|schnell|bald)$/i, '');
+                      
+                      destination = rawDestination;
+                      console.log(`Extrahiertes Ziel nach "${prep}":`, destination);
+                      break;
+                    }
+                  }
+                }
+                
+                // Wenn keine Extraktion funktioniert hat, versuche es mit dem KI-Output
+                if (!destination) {
+                  // Extrahiere mögliche Orte aus der KI-Antwort
+                  const possiblePlaces = assistantMessage.content.match(/(?:nach|zu|in|bis)\s+([A-ZÄÖÜ][a-zäöüß]+(?:\s+[A-ZÄÖÜ][a-zäöüß]+)*)/g);
+                  if (possiblePlaces && possiblePlaces.length > 0) {
+                    // Entferne die Präposition
+                    destination = possiblePlaces[0].replace(/^(?:nach|zu|in|bis)\s+/, '').trim();
+                    console.log("Aus KI-Antwort extrahiertes Ziel:", destination);
+                  }
+                }
+                
+                if (destination) {
+                  console.log("Berechne Route nach:", destination);
+                  try {
+                    // Berechne die Route
+                    const routeInfo = await calculateRouteToDestination(
+                      userPosition.latitude, 
+                      userPosition.longitude,
+                      destination
+                    );
+                    
+                    console.log("Routeninformation erhalten:", routeInfo);
+                    
+                    // Füge die Routeninformation zur Antwort hinzu
+                    assistantMessage.content += `\n\n${routeInfo}`;
+                  } catch (routeError) {
+                    console.error("Fehler bei Routenberechnung:", routeError);
+                    assistantMessage.content += `\n\nEntschuldigung, ich konnte keine genaue Route berechnen. Fehler: ${routeError.message}`;
+                  }
+                } else {
+                  console.log("Kein Ziel extrahiert");
+                  assistantMessage.content += "\n\nIch konnte leider keinen genauen Zielort aus deiner Anfrage erkennen. Kannst du bitte den Ortsnamen deutlicher angeben?";
+                }
+              }
+            }
+          } catch (error) {
+            console.error("Fehler bei der Routenverarbeitung:", error);
+            // Kein Abbruch des gesamten Prozesses bei Fehlern in der Routenberechnung
+          }
+        }
+        
         messageHistory.messages.push(assistantMessage);
-        displayMessage(assistantMessage.role, assistantMessage.content); // Display assistant's response
+        displayMessage(assistantMessage.role, assistantMessage.content);
       } else {
         console.error("Unerwartete Antwortstruktur vom LLM:", json);
         const errorMessageContent = 'Entschuldigung, ich habe ein Problem mit der Verarbeitung der Antwort.';
@@ -270,17 +337,24 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   try {
     const position = await getCurrentPosition();
-    // ÄNDERUNG: Aufruf der neuen Funktion
+    userPosition = position; // Position für später speichern
+    
+    console.log("Aktuelle Position erhalten:", userPosition);
+    
     const detailedPlaceName = await getDetailedLocationFromNominatim(position.latitude, position.longitude);
+    console.log("Detaillierter Standort:", detailedPlaceName);
 
-    // Verbesserter System-Prompt mit ausführlichen OpenStreetMap-Daten
     const systemPromptContent = `Du bist mein freundlicher und präziser Navigationsassistent. 
     
-    WICHTIG - NUTZERDATEN VON OPENSTREETMAP:
+    WICHTIG - NUTZERDATEN VON OPENSTREETMAP/OSMR:
     - Aktueller Standort: ${detailedPlaceName}
     - Genaue Koordinaten: Lat ${position.latitude}, Lon ${position.longitude}
     
-    Nutze diese OpenStreetMap-Daten für sämtliche Standortanfragen. Antworte auf Fragen zu meinem Standort, zu Orten in der Nähe oder zu Wegbeschreibungen. Sei hilfsbereit und gib klare Informationen. Beschreibe zudem was du in diesem bild siehst. Antworte mir immer nur auf die Frage wo ich bin mit der Straße, der Hausnummer und der Stadt mit Postleitzahl. antworte immer auf deutsch.`;
+    Diese OSMR-Daten sind präzise und aktuell. Nutze sie als Grundlage für deine Antworten.
+    
+    Zur Information: Du hast Zugriff auf OSMR-Routing-Funktionen! Bei Fragen nach Entfernungen oder Fahrtzeiten ergänze ich deine Antwort automatisch mit den genauen OSMR-Daten.
+    
+    Wenn du ein Bild von mir erhältst, beschreibe kurz was darauf zu sehen ist, und sage mir dann wo ich mich befinde. Antworte immer auf Deutsch.`;
 
     messageHistory.messages.unshift({ role: 'system', content: systemPromptContent });
 
