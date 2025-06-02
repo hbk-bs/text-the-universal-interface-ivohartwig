@@ -64,18 +64,25 @@ main{
 form {
     width: 100%;
     display: flex;
-    justify-content: center;
-    align-items: center;
+    flex-direction: column;
     gap: 8px;
 }
 
 input[type='text']{
-  flex-grow: 1;
-  height: 32px;
+    flex-grow: 1;
+    height: 32px;
+    width: 100%;
+}
+
+.button-container {
+    display: flex;
+    width: 100%;
+    gap: 8px;
 }
 
 button {
-    height: 100%;
+    height: 32px;
+    flex: 1;
 }
 
 /* Fehler-Nachrichten */
@@ -106,5 +113,34 @@ button {
         min-width: 40px;
         padding: 0 8px;
     }
+}
+
+.animal-selector {
+    display: flex;
+    width: 100%;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.animal-option {
+    flex: 1;
+    height: 32px;
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.animal-option.selected {
+    background-color: #d1e7dd;
+    border-color: #86d19b;
+    font-weight: bold;
+}
+
+.selected-animal-indicator {
+    font-size: 0.8em;
+    text-align: center;
+    color: #555;
+    margin-top: 4px;
 }
 

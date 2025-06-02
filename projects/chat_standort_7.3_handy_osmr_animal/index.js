@@ -52,6 +52,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   const formElement = document.querySelector('form');
   const imgButton = document.getElementById('img-button');
   const imageUpload = document.getElementById('image-upload');
+  const animalButton = document.getElementById('animal-button');
+  const animalSelector = document.querySelector('.animal-selector');
+  const animalOptions = document.querySelectorAll('.animal-option');
 
   if (!chatHistoryElement || !inputElement || !formElement || !imgButton || !imageUpload) {
     console.error("Wichtige DOM-Elemente nicht gefunden!");
@@ -63,6 +66,82 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Globale Variable für die Position des Nutzers hinzufügen
   let userPosition = null;
+  // Global variable for the selected animal
+  let selectedAnimal = null;
+  
+  // Animal speeds in km/h
+  const animalSpeeds = {
+    ant: 0.3,     // 0.3 km/h
+    bird: 80,     // 80 km/h (average flying speed)
+    lion: 80,     // 80 km/h (max running speed)
+    mensch: 4,    // 4 km/h (walking speed)
+    default: 60   // default car speed
+  };
+
+  // Animal travel descriptions
+  const animalTravelDescriptions = {
+    ant: "krabbelt",
+    bird: "fliegt",
+    lion: "rennt",
+    mensch: "geht",
+    default: "fährt"
+  };
+
+  // Toggle animal selector visibility
+  animalButton.addEventListener('click', () => {
+    const isVisible = animalSelector.style.display !== 'none';
+    animalSelector.style.display = isVisible ? 'none' : 'flex';
+  });
+
+  // Handle animal selection
+  animalOptions.forEach(option => {
+    option.addEventListener('click', () => {
+      const animal = option.getAttribute('data-animal');
+      
+      // Remove selected class from all options
+      animalOptions.forEach(opt => opt.classList.remove('selected'));
+      
+      // Add selected class to clicked option
+      option.classList.add('selected');
+      
+      // Set the selected animal
+      selectedAnimal = animal;
+      
+      // Hide the selector after selection
+      animalSelector.style.display = 'none';
+      
+      // Display a message about the selected animal
+      const animalEmojis = {
+        ant: '🐜',
+        bird: '🐦',
+        lion: '🦁',
+        mensch: '🚶',
+      };
+      
+      const emoji = animalEmojis[animal] || '🚶';
+      const animalName = option.textContent;
+      
+      // Show a system message about the selected animal
+      displayMessage('system-info', `${emoji} Du berechnest jetzt Routen als ${animalName}!`);
+      
+      // Update the animal button to show the current selection
+      animalButton.textContent = `${emoji} ${animalName}`;
+      
+      // Add a message to inform the AI about the animal selection
+      messageHistory.messages.push({
+        role: 'system',
+        content: `Der Benutzer hat jetzt das Tier "${animalName}" (${emoji}) ausgewählt. Bitte berücksichtige in deinen Antworten, dass Entfernungen nun aus der Perspektive ${animalName === 'Mensch' ? 'eines Menschen' : `einer ${animalName}`} betrachtet werden.`
+      });
+      
+      // Provide feedback to the user via assistant message
+      const animalSelectionMessage = {
+        role: 'assistant',
+        content: `Ich werde jetzt Routen und Entfernungen für ${animalName === 'Mensch' ? 'einen' : 'eine'} ${animalName} berechnen! ${emoji}`
+      };
+      messageHistory.messages.push(animalSelectionMessage);
+      displayMessage('assistant', animalSelectionMessage.content);
+    });
+  });
 
   async function processImageDataURL(dataURL) {
     // Create an image element for display
@@ -188,19 +267,30 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   async function getLLMResponse() {
     try {
-      // messageHistory.messages now contains the correct structure for API
-      const apiRequestBody = {
-        messages: messageHistory.messages,
-        // temperature: 0.7, // You can add other parameters from your backend schema
-        // seed: 12345,
+      // Add the current animal context to each request if an animal is selected
+      let apiRequestBody = {
+        messages: [...messageHistory.messages]
       };
+      
+      // If an animal is selected, ensure the AI knows about it by adding context
+      if (selectedAnimal) {
+        const animalName = document.querySelector(`.animal-option[data-animal="${selectedAnimal}"]`).textContent;
+        const animalVerb = animalTravelDescriptions[selectedAnimal];
+        
+        // Add temporary context message at the end to ensure the AI has the latest animal info
+        const tempAnimalContext = {
+          role: 'system',
+          content: `WICHTIG: Aktuelle Tierauswahl ist ${animalName}. Bei Fragen nach Entfernungen oder Fahrtzeiten berücksichtige, dass eine ${animalName} ${animalVerb} und nicht fährt.`
+        };
+        apiRequestBody.messages = [...apiRequestBody.messages, tempAnimalContext];
+      }
   
       const response = await fetch(llmImageApiEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(apiRequestBody), // Body now includes structured image messages
+        body: JSON.stringify(apiRequestBody)
       });
-  
+
       if (!response.ok) {
         const errorText = await response.text();
         // It's good to display the error in the chat
@@ -283,8 +373,59 @@ document.addEventListener('DOMContentLoaded', async () => {
                     
                     console.log("Routeninformation erhalten:", routeInfo);
                     
+                    // Modifiziere die Routeninformation basierend auf dem ausgewählten Tier
+                    let modifiedRouteInfo = routeInfo;
+                    
+                    if (selectedAnimal) {
+                      // Parse die Routeninformation
+                      const distanceMatch = routeInfo.match(/Die Entfernung beträgt ([\d,\.]+) km/);
+                      if (distanceMatch && distanceMatch[1]) {
+                        const distance = parseFloat(distanceMatch[1].replace(',', '.'));
+                        const animalSpeed = animalSpeeds[selectedAnimal] || animalSpeeds.default;
+                        const animalVerb = animalTravelDescriptions[selectedAnimal] || animalTravelDescriptions.default;
+                        
+                        // Berechne die Zeit basierend auf der Tiergeschwindigkeit
+                        const timeInHours = distance / animalSpeed;
+                        let timeDescription;
+                        
+                        if (timeInHours < 1) {
+                          const timeInMinutes = Math.round(timeInHours * 60);
+                          timeDescription = `etwa ${timeInMinutes} Minute${timeInMinutes !== 1 ? 'n' : ''}`;
+                        } else if (timeInHours < 24) {
+                          const hours = Math.floor(timeInHours);
+                          const minutes = Math.round((timeInHours - hours) * 60);
+                          timeDescription = `etwa ${hours} Stunde${hours !== 1 ? 'n' : ''}`;
+                          if (minutes > 0) {
+                            timeDescription += ` und ${minutes} Minute${minutes !== 1 ? 'n' : ''}`;
+                          }
+                        } else {
+                          const days = Math.floor(timeInHours / 24);
+                          const remainingHours = Math.floor(timeInHours % 24);
+                          timeDescription = `etwa ${days} Tag${days !== 1 ? 'e' : ''}`;
+                          if (remainingHours > 0) {
+                            timeDescription += ` und ${remainingHours} Stunde${remainingHours !== 1 ? 'n' : ''}`;
+                          }
+                        }
+                        
+                        // Emoji für das Tier
+                        const animalEmojis = {
+                          ant: '🐜',
+                          bird: '🐦',
+                          lion: '🦁',
+                          default: '🚗'
+                        };
+                        
+                        const emoji = animalEmojis[selectedAnimal] || animalEmojis.default;
+                        
+                        // Erstelle eine neue Routeninformation
+                        modifiedRouteInfo = `${emoji} Route als ${document.querySelector(`.animal-option[data-animal="${selectedAnimal}"]`).textContent} nach ${destination}:\n` +
+                                        `Die Entfernung beträgt ${distance.toFixed(1)} km.\n` +
+                                        `Eine ${document.querySelector(`.animal-option[data-animal="${selectedAnimal}"]`).textContent} ${animalVerb} diese Strecke in ${timeDescription}.`;
+                      }
+                    }
+                    
                     // Füge die Routeninformation zur Antwort hinzu
-                    assistantMessage.content += `\n\n${routeInfo}`;
+                    assistantMessage.content += `\n\n${modifiedRouteInfo}`;
                   } catch (routeError) {
                     console.error("Fehler bei Routenberechnung:", routeError);
                     assistantMessage.content += `\n\nEntschuldigung, ich konnte keine genaue Route berechnen. Fehler: ${routeError.message}`;
@@ -354,13 +495,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     Zur Information: Du hast Zugriff auf OSMR-Routing-Funktionen! Bei Fragen nach Entfernungen oder Fahrtzeiten ergänze ich deine Antwort automatisch mit den genauen OSMR-Daten.
     
+    WICHTIG - TIERAUSWAHL-FUNKTION:
+    Der Benutzer kann ein Tier auswählen (Ameise, Vogel oder Löwe oder Mensch). 
+    - Wenn eine Ameise ausgewählt wurde: Antworte als ob du eine Ameise wärst. Ameisen krabbeln mit 0,3 km/h.
+    - Wenn ein Vogel ausgewählt wurde: Antworte als ob du ein Vogel wärst. Vögel fliegen mit 80 km/h.
+    - Wenn ein Löwe ausgewählt wurde: Antworte als ob du ein Löwe wärst. Löwen rennen mit 80 km/h.
+    - Wenn ein mensch asugewählt wurde: antworte als ob du ein mensch wärst. menschen gehen mit 3 bis 4 km/h.
+    
+    
     Wenn du ein Bild von mir erhältst, beschreibe kurz was darauf zu sehen ist, und sage mir dann wo ich mich befinde. Antworte immer auf Deutsch.`;
 
     messageHistory.messages.unshift({ role: 'system', content: systemPromptContent });
 
     const greetingMessage = {
       role: 'assistant',
-      content: 'Hallo! Ich bin dein Navigationsassistent. Du kannst mir gerne ein aktuelles Bild von deiner umgebung schicken, ich sage dir wo du bist :)) ',
+      content: 'Hallo! Ich bin dein Navigationsassistent. Du kannst mir gerne ein aktuelles Bild von deiner Umgebung schicken, ich sage dir wo du bist. Mit dem "Animal"-Button kannst du auswählen, ob du Entfernungen für eine Ameise, einen Vogel, einen Löwen oder einem Menschen berechnen möchtest.',
     };
     messageHistory.messages.push(greetingMessage);
     displayMessage(greetingMessage.role, greetingMessage.content);
