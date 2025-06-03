@@ -1,6 +1,63 @@
 import { getDetailedLocationFromNominatim, calculateRouteToDestination } from './osmr-api.js';
 import { fileToDataURL } from './generate-data-uri.js';
 
+// Add location history management
+// This is a separate module that doesn't modify any existing code
+const locationHistory = {
+  storageKey: 'nIVOgation_location_history',
+  
+  saveLocation(place, coordinates) {
+    try {
+      const history = this.getLocationHistory();
+      const timestamp = new Date().toISOString();
+      
+      history.push({
+        place: place,
+        coordinates: coordinates,
+        timestamp: timestamp,
+        readableTime: new Date().toLocaleString('de-DE')
+      });
+      
+      // Keep only last 50 entries
+      if (history.length > 50) {
+        history.shift();
+      }
+      
+      localStorage.setItem(this.storageKey, JSON.stringify(history));
+      console.log('Location saved to history:', place);
+    } catch (error) {
+      console.error('Error saving location history:', error);
+    }
+  },
+  
+  getLocationHistory() {
+    try {
+      const data = localStorage.getItem(this.storageKey);
+      return data ? JSON.parse(data) : [];
+    } catch (error) {
+      console.error('Error reading location history:', error);
+      return [];
+    }
+  },
+  
+  getFormattedHistory() {
+    const history = this.getLocationHistory();
+    if (!history.length) {
+      return "Du hast noch keine gespeicherten Standortdaten.";
+    }
+    
+    let result = "Deine letzten Standorte:\n\n";
+    // Show most recent locations first
+    const recentHistory = [...history].reverse().slice(0, 10);
+    
+    recentHistory.forEach((item, index) => {
+      result += `${index + 1}. ${item.place} (${item.readableTime})\n`;
+    });
+    
+    return result;
+  }
+};
+
 const llmImageApiEndpoint = 'https://ivo-openai-api-images.val.run/';
 const apiEndpoint = 'https://ivo-openai-api.val.run/';
 
@@ -202,6 +259,17 @@ document.addEventListener('DOMContentLoaded', async () => {
       
       // Get LLM response that will combine both pieces of information
       await getLLMResponse();
+      
+      // Try to extract location from the assistant's last message for saving to history
+      const lastAssistantMsg = messageHistory.messages.filter(msg => msg.role === 'assistant').pop();
+      if (lastAssistantMsg && lastAssistantMsg.content) {
+        // Extract location using regex patterns (looking for "Du befindest dich in/an/bei...")
+        const locationMatches = lastAssistantMsg.content.match(/befindest dich (?:in|an|bei|auf) ([^\.]+)/i);
+        if (locationMatches && locationMatches[1]) {
+          const extractedLocation = locationMatches[1].trim();
+          locationHistory.saveLocation(extractedLocation, userPosition);
+        }
+      }
     } catch (error) {
       console.error("Fehler beim Verarbeiten des Bildes:", error);
       displayMessage('system-info', `Bildfehler: ${error.message}`, true);
@@ -310,6 +378,26 @@ document.addEventListener('DOMContentLoaded', async () => {
         json.completion.choices[0].message
       ) {
         const assistantMessage = json.completion.choices[0].message;
+        
+        // Check if user is asking about location history
+        const lastUserMessage = messageHistory.messages.find(msg => 
+          msg.role === 'user' && typeof msg.content === 'string');
+          
+        if (lastUserMessage) {
+          const userQuery = lastUserMessage.content.toLowerCase();
+          const historyKeywords = [
+            'wo war ich', 'frühere standorte', 'standortverlauf', 'meine orte', 
+            'bisherige orte', 'letzte orte', 'standorthistorie', 'wo ich war',
+            'standort historie', 'besuchte orte', 'vorherige standorte', 'orte',
+            'letzte tage', 'letzte wochen', 'letzte stunde'
+          ];
+          
+          if (historyKeywords.some(keyword => userQuery.includes(keyword))) {
+            // Get location history and add it to the message
+            const formattedHistory = locationHistory.getFormattedHistory();
+            assistantMessage.content += `\n\n${formattedHistory}`;
+          }
+        }
         
         // Prüfen auf Routenanfragen und Entfernungsfragen
         if (userPosition) {
@@ -484,6 +572,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     const detailedPlaceName = await getDetailedLocationFromNominatim(position.latitude, position.longitude);
     console.log("Detaillierter Standort:", detailedPlaceName);
+    
+    // Save the current location to history
+    locationHistory.saveLocation(detailedPlaceName, {
+      latitude: position.latitude,
+      longitude: position.longitude
+    });
 
     const systemPromptContent = `Du bist mein freundlicher und präziser Navigationsassistent. 
     
@@ -492,6 +586,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     - Genaue Koordinaten: Lat ${position.latitude}, Lon ${position.longitude}
     
     Diese OSMR-Daten sind präzise und aktuell. Nutze sie als Grundlage für deine Antworten.
+    
+    WICHTIG - STANDORTHISTORIE:
+    Ich speichere alle Standorte, an denen ich mich befinde, in einer Historie. Diese Historie kann ich abrufen, wenn der Nutzer mich danach fragt (z.B. "Wo war ich in letzter Zeit?"). Wenn er danach fragt, füge ich eine Liste der letzten Standorte hinzu.
     
     Zur Information: Du hast Zugriff auf OSMR-Routing-Funktionen! Bei Fragen nach Entfernungen oder Fahrtzeiten ergänze ich deine Antwort automatisch mit den genauen OSMR-Daten.
     
@@ -514,7 +611,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const greetingMessage = {
       role: 'assistant',
-      content: 'Hallo! Ich bin dein Navigationsassistent. Du kannst mir gerne ein aktuelles Bild von deiner Umgebung schicken, ich sage dir wo du bist. Mit dem "Animal"-Button kannst du auswählen, ob du Entfernungen für eine Ameise, einen Vogel, einen Löwen oder einem Menschen berechnen möchtest.',
+      content: 'Hallo! Ich bin dein Navigationsassistent. Du kannst mir gerne ein aktuelles Bild von deiner Umgebung schicken, ich sage dir wo du bist. Mit dem "Animal"-Button kannst du auswählen, ob du Entfernungen für eine Ameise, einen Vogel, einen Löwen oder einem Menschen berechnen möchtest. Ich speichere außerdem deine Standorte - frag mich einfach, wo du in letzter Zeit warst.',
     };
     messageHistory.messages.push(greetingMessage);
     displayMessage(greetingMessage.role, greetingMessage.content);
