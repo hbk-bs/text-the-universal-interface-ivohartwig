@@ -182,22 +182,25 @@ document.addEventListener('DOMContentLoaded', async () => {
       const resultObject = JSON.parse(resultString);
       console.log("Ergebnisobjekt:", resultObject);
       
-      // Add text question to message history without displaying it
-      messageHistory.messages.push({
-        role: 'assistant',
-        content: resultObject.result
-      });
-
-      displayMessage('assistant', resultObject.result);
-
+      // Instead of pushing the image description to messageHistory and displaying it,
+      // we'll use it as context for a combined response
+      const imageDescription = resultObject.result;
+      
+      // Add a user message requesting both image description and location in one response
       messageHistory.messages.push({
         role: 'user',
-        content: 'sage mir wo ich bin. Ich möchte das du mir die Straße, die Hausnummer und die Stadt mit genauer Postleitzahl sagst. gebe mir nicht meine Koodinaten.'
+        content: 'Beschreibe dieses Bild und sage mir gleichzeitig, wo ich bin. Ich möchte eine einzige zusammenhängende Antwort mit der Bildbeschreibung und den Standortinformationen (Straße, Hausnummer, Stadt und PLZ).'
+      });
+      
+      // Add image description as system context
+      messageHistory.messages.push({
+        role: 'system',
+        content: `Bildbeschreibung zur Verwendung in deiner Antwort: "${imageDescription}". Bitte erstelle eine einzige, zusammenhängende Antwort, die sowohl die Beschreibung des Bildes als auch die Standortinformation enthält.`
       });
 
       console.log("Aktualisierte messageHistory:", messageHistory.messages);
       
-      // Get LLM response
+      // Get LLM response that will combine both pieces of information
       await getLLMResponse();
     } catch (error) {
       console.error("Fehler beim Verarbeiten des Bildes:", error);
@@ -415,9 +418,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                           default: '🚗'
                         };
                         
-                        const emoji = animalEmojis[selectedAnimal] || animalEmojis.default;
-                        
-                        // Erstelle eine neue Routeninformation
                         modifiedRouteInfo = `${emoji} Route als ${document.querySelector(`.animal-option[data-animal="${selectedAnimal}"]`).textContent} nach ${destination}:\n` +
                                         `Die Entfernung beträgt ${distance.toFixed(1)} km.\n` +
                                         `Eine ${document.querySelector(`.animal-option[data-animal="${selectedAnimal}"]`).textContent} ${animalVerb} diese Strecke in ${timeDescription}.`;
@@ -502,8 +502,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     - Wenn ein Löwe ausgewählt wurde: Antworte als ob du ein Löwe wärst. Löwen rennen mit 80 km/h.
     - Wenn ein mensch asugewählt wurde: antworte als ob du ein mensch wärst. menschen gehen mit 3 bis 4 km/h.
     
+    WICHTIG - BILDANALYSE:
+    Wenn der Benutzer ein Bild sendet, beschreibe das Bild UND sage wo er sich befindet in EINER zusammenhängenden Antwort.
+    Format etwa: "Auf dem Bild sehe ich [Beschreibung]. Du befindest dich in/an [präziser Standort mit Straße und Hausnummer wenn möglich]."
     
-    Wenn du ein Bild von mir erhältst, beschreibe kurz was darauf zu sehen ist, und sage mir dann wo ich mich befinde. Antworte immer auf Deutsch.`;
+    Antworte immer auf Deutsch.`;
 
     messageHistory.messages.unshift({ role: 'system', content: systemPromptContent });
 
@@ -525,6 +528,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     displayMessage('system-info', `Standortfehler: ${error.message}`, true);
   }
 });
+
+
+
 
 
 
