@@ -1,22 +1,277 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>p5.js Starter Project</title>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
-<main>
-	<form action="">
-		<input type="text" id="input" name="content">
-		<button id="button" name="button">Click me</button>
-	</form>
-    <div id="sketch"></div>
-    <a href="index.js">souce code</a>
-    </main>
-    <script src="lib/p5.min.js"></script>
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<link rel="icon" type="image/svg+xml" href="favicon.svg" />
 
-    <script src="index.js"></script>
-</body>
-</html>
+		<title>{nature of code}</title>
+		<link rel="stylesheet" href="style.css" />
+		<style>
+			/* Custom styling for links */
+			section.INFO a, section.REFLECTION a {
+				color: inherit; /* Uses the parent text color */
+				text-decoration: underline; /* Removes the underline */
+			}
+			/* Apply hover effect only to links that are not direct h3 children */
+			section.INFO a:not(h3):hover, section.REFLECTION a:not(h3):hover {
+				text-decoration: underline; /* Optional: adds underline on hover */
+			}
+			/* Make sure h3 links never get underlined on hover */
+			section.INFO a h3:hover, section.REFLECTION a h3:hover, 
+			section.INFO h3 a:hover, section.REFLECTION h3 a:hover {
+				text-decoration: none;
+				}
+			/* Explicitly target the REFLECTION h3 */
+			section.REFLECTION > h3:hover {
+				text-decoration: none !important;
+			}
+			section.REFLECTION > h3 {
+				text-decoration: none !important;
+			}
+		</style>
+	</head>
+
+
+	<header>
+		<div class="header">
+		 <h1>- 	NATURE OF CODE -</h1>
+		</div>
+
+		<a href="projects/code">
+		<section class="NAVWEB">
+			<h2 id="MENU" class="navtext">BASIC CODE</h2>
+		</section>
+		</a>
+
+		<a href="#STRUCTURES">
+		<section class="NAVWEB">
+			<h2 id="MENU" class="navtext">STRUCTURES</h2>
+		</section>
+		</a>
+
+		<a href="#PARTICLE">
+		<section class="NAVWEB">
+			<h2 id="MENU" class="navtext">PARTICLE SYSTEMS</h2>
+		</section>
+		</a>
+
+		<a href="projects/ebbe_flut_2_repeller_inter">
+		<section class="NAVWEB">
+			<h2 id="MENU" class="navtext">INTERACTION</h2>
+		</section>
+		</a>
+
+
+    </header>
+	  
+	<main>
+
+		<section class="REFLECTION">
+		<h3>REFLECTION</h3>
+		<div class="text">
+			<h4>RESEARCHING</h4>
+			<p>How can natural structures be translated into written code? What should one focus on – the physical properties or the visual ones? To find out, the Digital Foundations course from HBK Braunschweig spent a week on Amrum, a small island in North Frisia.
+				On the first evening, I walked across the dunes to the sea. Once I had climbed over the sand hill, the endless beach and mudflats stretched out before me. I was forced to walk a long way to reach the water. Along the way, I immediately noticed something: how many different kinds of structures the beach can have.</p>
+			<h4>STRUCTURES</h4>
+			<p>In the first step, my goal was to translate the visual properties of the beach's structures into code. I quickly realized that these structures can be distinguished by two rather subtle characteristics: the spacing between the lines and the way the lines themselves flow – whether they are more straight or wavy.
+				In my code, these properties can be adjusted using the variables <code>let spacing</code> and <code>let noiseScale</code>. Here, <code>let spacing</code> defines the distance between the lines, and <code>let noiseScale</code> describes their flow.</p>
+			<a href="#STRUCTURES"><h5>SAND1</h5></a>
+			<pre><code>let spacing = 15; <br>let noiseScale = 0.05; </code></pre>
+			<a href="#SAND2"><h5>SAND2</h5></a>
+			<pre><code>let spacing = 3; <br>let noiseScale = 0.05;</code></pre>
+			<a href="#SAND3"><h5>SAND3</h5></a>
+			<pre><code>let spacing = 3; <br>let noiseScale = 1;</code></pre>
+			<a href="#SAND4"><h5>SAND4</h5></a>
+			<pre><code>let spacing = 4; <br>let noiseScale = 0.02;</code></pre>
+			<a href="#SAND5"><h5>SAND5</h5></a>
+            <pre><code>let spacing = 4;  <br>let noiseScale = 0.02;</code></pre>
+			<p>NO SECOND LOOP FOR CONNECTING LINES
+			<br>
+			NO INTERRUPTIONS IN THE LINES </p>
+			<a href="#PARTICLE"><h4>PARTICLE SYSTEM / WATER </h4></a>
+			<p>But how do these different structures come into being?
+				Through my observations, I noticed that they all share one thing in common: they are formed by the constant movement of water.
+				In some cases, water flows through the structures, following the path of least resistance; in others, it deposits more and more sand, which accumulates over time.
+				To translate not only the visual but also the physical properties, I used a particle system to simulate water flowing over sand, generating these structures.</p>
+				
+				<p>The particles in this simulation represent water droplets that rise due to a strong upward buoyant force. Their movement is controlled by a maximum speed, ensuring realistic dynamics. The particles have a lifespan, which determines how long they stay active before being removed from the system.
+
+					When colliding with the background lines, which act as barriers, the particles are reflected, with their velocity being adjusted for a realistic response. If the line is slanted upwards, the particles also receive a tangential boost, enhancing their movement along the line. If a particle becomes nearly stationary due to low velocity, a release force is applied to get it moving again.
+					
+					The particles randomly respond to their environment, mimicking the chaotic and unpredictable behavior of water droplets. Overall, the simulation creates a dynamic and realistic representation of how water droplets interact with various forces.</p>
+		</div>
+		</section>
+
+		<section class="INFO" id="STRUCTURES">
+			<a href="https://hbk-bs.github.io/nature-of-code-ivohartwig/projects/sand1/" target="_blank"><h3>SAND 1</h3></a>
+		<div class="text">
+		</div>
+		</section>
+
+		<section class="THEMA">
+			
+			<div class="image-container2">
+			
+			<figure>
+			<img class="p5" src="https://hbk-bs.github.io/nature-of-code-ivohartwig/images/bild1.JPG">
+			<figcaption></figcaption>
+			</figure>
+
+			<figure>
+			<iframe 
+			src="https://hbk-bs.github.io/nature-of-code-ivohartwig/projects/sand1/" 
+			class="iframe-p5">
+			</iframe>
+			<figcaption></figcaption>
+			</figure>
+
+			</div>
+		
+		</section>
+
+
+		<section class="INFO" id="SAND2">
+			<a href="https://hbk-bs.github.io/nature-of-code-ivohartwig/projects/sand2/" target="_blank"><h3>SAND 2</h3></a>
+		<div class="text">
+	
+		</div>
+	    </section>
+
+
+		<section class="THEMA">
+			
+			<div class="image-container2">
+			
+			<figure>
+			<img class="p5" src="https://hbk-bs.github.io/nature-of-code-ivohartwig/images/bild2.JPG">
+			<figcaption></figcaption>
+			</figure>
+
+			<figure>
+			<iframe 
+			src="https://hbk-bs.github.io/nature-of-code-ivohartwig/projects/sand2/" 
+			class="iframe-p5">
+			</iframe>
+			<figcaption></figcaption>
+			</figure>
+
+			</div>
+		
+		</section>
+
+
+		<section class="INFO" id="SAND3">
+		    <a href="https://hbk-bs.github.io/nature-of-code-ivohartwig/projects/sand3/" target="_blank"><h3>SAND 3</h3></a>
+		<div class="text">
+		</div>
+	    </section>
+
+
+		<section class="THEMA">
+			
+			<div class="image-container2">
+			
+			<figure>
+			<img class="p5" src="https://hbk-bs.github.io/nature-of-code-ivohartwig/images/bild3.JPG">
+			<figcaption></figcaption>
+			</figure>
+
+			<figure>
+			<iframe 
+			src="https://hbk-bs.github.io/nature-of-code-ivohartwig/projects/sand3/" 
+			class="iframe-p5">
+			</iframe>
+			<figcaption></figcaption>
+			</figure>
+
+			</div>
+		
+		</section>
+
+
+		<section class="INFO" id="SAND4">
+		    <a href="https://hbk-bs.github.io/nature-of-code-ivohartwig/projects/sand4/" target="_blank"><h3>SAND 4</h3></a>
+		<div class="text">
+		</div>
+		</section>
+
+
+        <section class="THEMA">
+			
+			<div class="image-container2">
+			
+			<figure>
+			<img class="p5" src="https://hbk-bs.github.io/nature-of-code-ivohartwig/images/bild4.JPG">
+			<figcaption></figcaption>
+			</figure>
+
+			<figure>
+			<iframe 
+			src="https://hbk-bs.github.io/nature-of-code-ivohartwig/projects/sand4/" 
+			class="iframe-p5">
+			</iframe>
+			<figcaption></figcaption>
+			</figure>
+
+			</div>
+		
+		</section>
+
+
+		<section class="INFO" id="SAND5">
+			<a href="https://hbk-bs.github.io/nature-of-code-ivohartwig/projects/sand5/" target="_blank"><h3>SAND 5</h3></a>
+		<div class="text">
+		</div>
+		</section>
+
+
+		<section class="THEMA">
+			
+			<div class="image-container2">
+			
+			<figure>
+			<img class="p5" src="https://hbk-bs.github.io/nature-of-code-ivohartwig/images/bild5.JPG">
+			<figcaption></figcaption>
+			</figure>
+
+			<figure>
+			<iframe 
+			src="https://hbk-bs.github.io/nature-of-code-ivohartwig/projects/sand5/" 
+			class="iframe-p5">
+			</iframe>
+			<figcaption></figcaption>
+			</figure>
+
+			</div>
+		
+		</section>
+
+
+		<section class="INFO" id="PARTICLE">
+			<a href="https://hbk-bs.github.io/nature-of-code-ivohartwig/projects/ebbe_flut_2_repeller_finale/" target="_blank"><h3>PARTICLE SYSTEM / WATER</h3></a>
+		<div class="text">
+		</div>
+		</section>
+
+		<section class="THEMA">
+			
+			<div class="image-container2">
+			
+			<figure>
+			<iframe 
+			src="https://hbk-bs.github.io/nature-of-code-ivohartwig/projects/ebbe_flut_2_repeller_finale/" 
+			class="iframe-p5">
+			</iframe>
+			<figcaption></figcaption>
+			</figure>
+
+			</div>
+		
+		</section>
+
+    </main>
+
+	<footer class="footer">
+		<img class="me" src="https://hbk-bs.github.io/the-archives-ivohartwig/assets/images/Webbrille.png" alt="Webbrille">
+	</footer>
