@@ -103,6 +103,13 @@ button {
     font-size: 0.9em;
 }
 
+/* Success message for clear history */
+.message.success-message {
+    color: #2e7d32;
+    background-color: #e8f5e9 !important;
+    border-left: 3px solid #2e7d32;
+}
+
 /* Add responsive styling for mobile */
 @media (max-width: 768px) {
     input[type='text']{
@@ -112,6 +119,10 @@ button {
     button {
         min-width: 40px;
         padding: 0 8px;
+    }
+    
+    #clear-history-button {
+        font-size: 16px; /* Make trash icon properly visible on mobile */
     }
 }
 

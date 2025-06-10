@@ -57,6 +57,18 @@ const locationHistory = {
     });
     
     return result;
+  },
+  
+  // Add clearHistory method
+  clearHistory() {
+    try {
+      localStorage.removeItem(this.storageKey);
+      console.log('Location history cleared');
+      return true;
+    } catch (error) {
+      console.error('Error clearing location history:', error);
+      return false;
+    }
   }
 };
 
@@ -109,6 +121,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const animalButton = document.getElementById('animal-button');
   const animalSelector = document.querySelector('.animal-selector');
   const animalOptions = document.querySelectorAll('.animal-option');
+  const clearHistoryButton = document.getElementById('clear-history-button');
 
   if (!chatHistoryElement || !inputElement || !formElement || !imgButton || !imageUpload) {
     console.error("Wichtige DOM-Elemente nicht gefunden!");
@@ -242,10 +255,38 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  function displayMessage(role, messageContent, isError = false) {
+  // Add event listener for clear history button
+  clearHistoryButton.addEventListener('click', () => {
+    if (confirm('Möchtest du wirklich deinen gesamten Standortverlauf löschen?')) {
+      const success = locationHistory.clearHistory();
+      
+      if (success) {
+        displayMessage('system-info', '✓ Dein Standortverlauf wurde erfolgreich gelöscht!', false, true);
+        
+        // Add system message to inform AI about the cleared history
+        messageHistory.messages.push({
+          role: 'system',
+          content: 'Der Benutzer hat soeben seinen Standortverlauf gelöscht. Falls er nach seinem Verlauf fragt, informiere ihn, dass dieser gelöscht wurde und noch keine neuen Einträge vorhanden sind.'
+        });
+        
+        // Add user-facing message
+        const clearMessage = {
+          role: 'assistant',
+          content: 'Ich habe deinen Standortverlauf gelöscht. Alle bisherigen Standortdaten wurden entfernt.'
+        };
+        messageHistory.messages.push(clearMessage);
+        displayMessage('assistant', clearMessage.content);
+      } else {
+        displayMessage('system-info', '⚠️ Beim Löschen des Standortverlaufs ist ein Fehler aufgetreten.', true);
+      }
+    }
+  });
+
+  function displayMessage(role, messageContent, isError = false, isSuccess = false) {
     const messageDiv = document.createElement('div');
     messageDiv.classList.add('message', role);
     if (isError) messageDiv.classList.add('error-message');
+    if (isSuccess) messageDiv.classList.add('success-message');
   
     if (typeof messageContent === 'string') {
       messageDiv.textContent = messageContent;
@@ -460,7 +501,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const greetingMessage = {
       role: 'assistant',
-      content: 'Hallo! Ich bin dein Navigationsassistent. Du kannst mir gerne ein aktuelles Bild von deiner Umgebung schicken, ich sage dir wo du bist. Mit dem "Animal"-Button kannst du auswählen, ob du Entfernungen für eine Ameise, einen Vogel, einen Löwen oder einem Menschen berechnen möchtest. Ich speichere außerdem deine Standorte - frag mich einfach, wo du in letzter Zeit warst.',
+      content: 'Hallo! Ich bin dein Navigationsassistent. Du kannst mir gerne ein aktuelles Bild von deiner Umgebung schicken, ich sage dir wo du bist. Mit dem "Animal"-Button kannst du auswählen, ob du Entfernungen für eine Ameise, einen Vogel, einen Löwen oder einem Menschen berechnen möchtest. Ich speichere außerdem deine Standorte - frag mich einfach, wo du in letzter Zeit warst. Wenn du deinen Standortverlauf löschen möchtest, klicke auf den "Mülleimer"-Button. Ich freue mich darauf, dir zu helfen!',
     };
     messageHistory.messages.push(greetingMessage);
     displayMessage(greetingMessage.role, greetingMessage.content);
