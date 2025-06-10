@@ -329,85 +329,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (json.completion?.choices?.[0]?.message) {
         const assistantMessage = json.completion.choices[0].message;
         
-        // --- ÄNDERUNG ---
-        // Die alte Logik zum Anhängen des Verlaufs wurde entfernt.
+        // --- ROUTE CALCULATION LOGIK ENTFERNT ---
+        // Die alte Logik zum Anhängen des Verlaufs und zur Routenberechnung wurde entfernt.
         // Die korrekte Logik befindet sich jetzt im 'submit'-Event Listener.
-
-        if (userPosition) {
-          try {
-            const lastUserMessage = messageHistory.messages.filter(msg => msg.role === 'user' && typeof msg.content === 'string').pop();
-
-            if (lastUserMessage) {
-              const userQuery = lastUserMessage.content.toLowerCase();
-              const routeKeywords = ['wie weit', 'wie lange', 'entfernung', 'distanz', 'route', 'weg', 'fahrt', 'fahren', 'komme ich'];
-              const hasRouteKeyword = routeKeywords.some(keyword => userQuery.includes(keyword));
-              const prepositions = ['nach', 'zu', 'bis', 'in'];
-              const hasPreposition = prepositions.some(prep => userQuery.includes(prep + ' '));
-              
-              if (hasRouteKeyword && hasPreposition) {
-                let destination = '';
-                for (const prep of prepositions) {
-                  if (userQuery.includes(' ' + prep + ' ')) {
-                    const parts = userQuery.split(' ' + prep + ' ');
-                    if (parts.length > 1) {
-                      let rawDestination = parts[1].split(/[?.!]|von|und|oder/)[0].trim();
-                      rawDestination = rawDestination.replace(/\s+(jetzt|dann|heute|morgen|schnell|bald)$/i, '');
-                      destination = rawDestination;
-                      break;
-                    }
-                  }
-                }
-                
-                if (!destination) {
-                  const possiblePlaces = assistantMessage.content.match(/(?:nach|zu|in|bis)\s+([A-ZÄÖÜ][a-zäöüß]+(?:\s+[A-ZÄÖÜ][a-zäöüß]+)*)/g);
-                  if (possiblePlaces?.length > 0) {
-                    destination = possiblePlaces[0].replace(/^(?:nach|zu|in|bis)\s+/, '').trim();
-                  }
-                }
-                
-                if (destination) {
-                  try {
-                    const routeInfo = await calculateRouteToDestination(userPosition.latitude, userPosition.longitude, destination);
-                    let modifiedRouteInfo = routeInfo;
-                    
-                    if (selectedAnimal) {
-                      const distanceMatch = routeInfo.match(/Die Entfernung beträgt ([\d,\.]+) km/);
-                      if (distanceMatch?.[1]) {
-                        const distance = parseFloat(distanceMatch[1].replace(',', '.'));
-                        const animalSpeed = animalSpeeds[selectedAnimal] || animalSpeeds.default;
-                        const animalVerb = animalTravelDescriptions[selectedAnimal] || animalTravelDescriptions.default;
-                        const timeInHours = distance / animalSpeed;
-                        let timeDescription;
-                        
-                        if (timeInHours < 1) {
-                          timeDescription = `etwa ${Math.round(timeInHours * 60)} Minute(n)`;
-                        } else if (timeInHours < 24) {
-                          const hours = Math.floor(timeInHours);
-                          const minutes = Math.round((timeInHours - hours) * 60);
-                          timeDescription = `etwa ${hours} Stunde(n)${minutes > 0 ? ` und ${minutes} Minute(n)` : ''}`;
-                        } else {
-                          const days = Math.floor(timeInHours / 24);
-                          const remainingHours = Math.floor(timeInHours % 24);
-                          timeDescription = `etwa ${days} Tag(e)${remainingHours > 0 ? ` und ${remainingHours} Stunde(n)` : ''}`;
-                        }
-                        
-                        const animalName = document.querySelector(`.animal-option[data-animal="${selectedAnimal}"]`).textContent;
-                        modifiedRouteInfo = `Route als ${animalName} nach ${destination}:\n` +
-                                        `Die Entfernung beträgt ${distance.toFixed(1)} km.\n` +
-                                        `Eine ${animalName} ${animalVerb} diese Strecke in ${timeDescription}.`;
-                      }
-                    }
-                    assistantMessage.content += `\n\n${modifiedRouteInfo}`;
-                  } catch (routeError) {
-                    assistantMessage.content += `\n\nEntschuldigung, ich konnte keine genaue Route berechnen. Fehler: ${routeError.message}`;
-                  }
-                }
-              }
-            }
-          } catch (error) {
-            console.error("Fehler bei der Routenverarbeitung:", error);
-          }
-        }
         
         messageHistory.messages.push(assistantMessage);
         displayMessage(assistantMessage.role, assistantMessage.content);
@@ -433,10 +357,88 @@ document.addEventListener('DOMContentLoaded', async () => {
     inputElement.value = '';
     messageHistory.messages.push({ role: 'user', content: content });
     displayMessage('user', content);
-    
-    // --- ÄNDERUNG START ---
-    // Prüfe die Nutzeranfrage, BEVOR die LLM-Funktion aufgerufen wird.
+
+    // --- NEUE LOGIK START ---
+
     const userQuery = content.toLowerCase();
+    const routeKeywords = ['wie weit', 'wie lange', 'entfernung', 'distanz', 'route', 'weg', 'fahrt', 'fahren', 'komme ich'];
+    const prepositions = ['nach', 'zu', 'bis', 'in'];
+    const hasRouteKeyword = routeKeywords.some(keyword => userQuery.includes(keyword));
+    const hasPreposition = prepositions.some(prep => userQuery.includes(prep + ' '));
+
+    // 1. Prüfen, ob der Nutzer eine Route wissen will
+    if (hasRouteKeyword && hasPreposition && userPosition) {
+      let destination = '';
+      // Simple Logik zur Extraktion des Ziels (kann verbessert werden)
+      for (const prep of prepositions) {
+        if (userQuery.includes(' ' + prep + ' ')) {
+          // Ensure we split correctly and get the part after the preposition
+          let potentialDestination = userQuery.split(' ' + prep + ' ')[1];
+          if (potentialDestination) {
+            destination = potentialDestination.split(/[?.!]|von|und|oder/)[0].trim();
+            // Remove trailing common words that might not be part of the destination
+            destination = destination.replace(/\s+(jetzt|dann|heute|morgen|schnell|bald)$/i, '').trim();
+          }
+          break;
+        }
+      }
+
+      if (destination) {
+        try {
+          // 2. Route BERECHNEN, BEVOR die LLM gerufen wird
+          const routeInfo = await calculateRouteToDestination(userPosition.latitude, userPosition.longitude, destination);
+          
+          let modifiedRouteInfo = routeInfo; // Default to original OSMR output
+          
+          // HIER: Logik für Tier-Geschwindigkeiten anwenden, falls nötig
+          if (selectedAnimal) {
+            // Extract distance from routeInfo (assuming it's in the format "Die Entfernung beträgt X km.")
+            const distanceMatch = routeInfo.match(/Die Entfernung beträgt ([\d,\.]+) km/);
+            if (distanceMatch && distanceMatch[1]) {
+              const distance = parseFloat(distanceMatch[1].replace(',', '.'));
+              const animalSpeed = animalSpeeds[selectedAnimal] || animalSpeeds.default;
+              const animalVerb = animalTravelDescriptions[selectedAnimal] || animalTravelDescriptions.default;
+              const timeInHours = distance / animalSpeed;
+              let timeDescription;
+
+              if (timeInHours < 1) {
+                timeDescription = `etwa ${Math.round(timeInHours * 60)} Minute(n)`;
+              } else if (timeInHours < 24) {
+                const hours = Math.floor(timeInHours);
+                const minutes = Math.round((timeInHours - hours) * 60);
+                timeDescription = `etwa ${hours} Stunde(n)${minutes > 0 ? ` und ${minutes} Minute(n)` : ''}`;
+              } else {
+                const days = Math.floor(timeInHours / 24);
+                const remainingHours = Math.floor(timeInHours % 24);
+                timeDescription = `etwa ${days} Tag(e)${remainingHours > 0 ? ` und ${remainingHours} Stunde(n)` : ''}`;
+              }
+              
+              const animalName = document.querySelector(`.animal-option[data-animal="${selectedAnimal}"]`).textContent;
+              // Construct the animal-specific route information
+              modifiedRouteInfo = `Route als ${animalName} nach ${destination}:\n` +
+                                  `Die Entfernung beträgt ${distance.toFixed(1)} km.\n` +
+                                  `Eine ${animalName} ${animalVerb} diese Strecke in ${timeDescription}.`;
+            }
+          }
+          
+          // 3. Ergebnis als System-Kontext für die LLM bereitstellen
+          messageHistory.messages.push({
+            role: 'system',
+            content: `SYSTEM-HINWEIS: Der Nutzer fragt nach einer Route. Hier sind die exakten Daten von OSMR für das Ziel "${destination}". Formuliere eine freundliche Antwort basierend auf diesen Daten:\n\n${modifiedRouteInfo}`
+          });
+
+        } catch (error) {
+          console.error("Fehler bei der Routenberechnung vor dem LLM-Call:", error);
+          // Informiere die LLM, dass ein Fehler aufgetreten ist
+          messageHistory.messages.push({
+            role: 'system',
+            content: `SYSTEM-HINWEIS: Bei der Routenberechnung nach "${destination}" ist ein Fehler aufgetreten. Informiere den Nutzer darüber und sage ihm, dass du keine Route finden konntest. Fehlerdetails: ${error.message}`
+          });
+        }
+      }
+    }
+
+    // Prüfen, ob nach der Historie gefragt wird (deine bestehende Logik)
     const historyKeywords = [
         'wo war ich', 'frühere standorte', 'standortverlauf', 'meine orte', 
         'bisherige orte', 'letzte orte', 'standorthistorie', 'wo ich war',
@@ -452,7 +454,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             content: `Hier ist die vom Nutzer gespeicherte Standorthistorie. Deine Aufgabe ist es, diese Liste für den Nutzer freundlich aufzubereiten und als Antwort auszugeben:\n\n${formattedHistory}`
         });
     }
-    // --- ÄNDERUNG ENDE ---
+    // --- NEUE LOGIK ENDE ---
     
     await getLLMResponse();
   });
@@ -468,8 +470,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       longitude: position.longitude
     });
 
-    // --- ÄNDERUNG START ---
-    // Der System-Prompt wurde angepasst, um die neue Logik zu reflektieren.
+    // --- SYSTEM-PROMPT ANGEPASST ---
     const systemPromptContent = `Du bist mein freundlicher und präziser Navigationsassistent. 
     
     WICHTIG - NUTZERDATEN VON OPENSTREETMAP/OSMR:
@@ -480,9 +481,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     WICHTIG - STANDORTHISTORIE:
     Wenn der Nutzer nach seinem Standortverlauf fragt (z.B. "Wo war ich?", "Zeig mir meine letzten Orte"), erhältst du von mir eine zusätzliche Systemnachricht, die seine gespeicherte Standorthistorie enthält. Deine Aufgabe ist es, diese Liste für den Nutzer freundlich und übersichtlich in deiner Antwort aufzubereiten.
     
-    Zur Information: Du hast Zugriff auf OSMR-Routing-Funktionen! Bei Fragen nach Entfernungen oder Fahrtzeiten ergänze ich deine Antwort automatisch mit den genauen OSMR-Daten.
+    WICHTIG - ROUTEN-INFORMATIONEN:
+    Wenn der Nutzer nach einer Route fragt, erhältst du von mir eine Systemnachricht mit den exakten Routendaten von OSMR (Entfernung, Dauer). Deine Aufgabe ist es, diese Daten zu verwenden, um eine präzise und freundliche Antwort zu formulieren.
     
-    WICHTIG - TIERAUSWAHL-FUNKTION:
+     WICHTIG - TIERAUSWAHL-FUNKTION:
     Der Benutzer kann ein Tier auswählen (Ameise, Vogel oder Löwe oder Mensch). 
     - Wenn eine Ameise ausgewählt wurde: Antworte als ob du eine Ameise wärst. Ameisen krabbeln mit 0,3 km/h.
     - Wenn ein Vogel ausgewählt wurde: Antworte als ob du ein Vogel wärst. Vögel fliegen mit 80 km/h.
@@ -490,7 +492,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     - Wenn ein mensch asugewählt wurde: antworte als ob du ein mensch wärst. menschen gehen mit 3 bis 4 km/h.
     
     WICHTIG - BILDANALYSE:
-    Wenn der Benutzer ein Bild sendet, beschreibe das Bild UND sage wo er sich befindet in EINER zusammenhängenden Antwort.
+    Wenn der Benutzer ein Bild sendet, beschreibe was du auf dem bild siehst. du musst keine Personen erkennen. UND sage wo er sich befindet in EINER zusammenhängenden Antwort.
     Ziehe schlussfolgerungen aud dem bild und den osmr daten. wenn das bild zum beispiel einen Bahnhof zeigt und du anhand der osmr daten weisst in welcher Stadt ich bin. so kombiniere diese informationen zu einer logischen schlussfolgerung.
     Format etwa: "Auf dem Bild sehe ich [Beschreibung]. Du befindest dich in/an [präziser Standort mit Straße und Hausnummer wenn möglich]."
     
@@ -501,7 +503,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const greetingMessage = {
       role: 'assistant',
-      content: 'Hallo! Ich bin dein Navigationsassistent. Du kannst mir gerne ein aktuelles Bild von deiner Umgebung schicken, ich sage dir wo du bist. Mit dem "Animal"-Button kannst du auswählen, ob du Entfernungen für eine Ameise, einen Vogel, einen Löwen oder einem Menschen berechnen möchtest. Ich speichere außerdem deine Standorte - frag mich einfach, wo du in letzter Zeit warst. Wenn du deinen Standortverlauf löschen möchtest, klicke auf den "Mülleimer"-Button. Ich freue mich darauf, dir zu helfen!',
+      content: 'Hallo! Ich bin dein Navigationsassistent. Du kannst mir gerne ein aktuelles Bild von deiner Umgebung schicken, ich sage dir wo du bist. Mit dem "Animal"-Button kannst du auswählen, ob du Entfernungen für eine Ameise, einen Vogel, einen Löwen oder einem Menschen berechnen möchtest. Ich speichere außerdem deine Standorte - frag mich einfach, wo du in letzter Zeit warst. Wenn du deinen Standortverlauf löschen möchtest, klicke auf den "Mülleimer"-Button. Wie kann ich dir helfen?',
     };
     messageHistory.messages.push(greetingMessage);
     displayMessage(greetingMessage.role, greetingMessage.content);
