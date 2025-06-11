@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>nIVOgation</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <main>
+        <div class="chat-history"></div>
+        <form>
+            <input type="text" name="content">
+            <div class="button-container">
+                <button type="submit" id="send-button">send</button>
+                <button type="button" id="img-button">img</button>
+                <button type="button" id="animal-button">Animal</button>
+                <button type="button" id="clear-history-button">🗑️</button>
+            </div>
+            <div class="animal-selector" style="display:none">
+                <button type="button" class="animal-option" data-animal="ant">Ameise</button>
+                <button type="button" class="animal-option" data-animal="bird">Vogel</button>
+                <button type="button" class="animal-option" data-animal="lion">Löwe</button>
+                <button type="button" class="animal-option" data-animal="mensch">Mensch</button>
+            </div>
+            <input type="file" id="image-upload" accept="image/*" style="display:none">
+        </form>
+    </main>
+    <script type="module" src="index.js"></script>
+</body>
+</html>
