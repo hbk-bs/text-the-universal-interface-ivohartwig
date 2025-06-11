@@ -30,7 +30,7 @@ export async function getDetailedLocationFromNominatim(latitude, longitude) {
  * @param {number} startLat - Breitengrad des Startpunkts
  * @param {number} startLon - Längengrad des Startpunkts
  * @param {string} destination - Name oder Beschreibung des Ziels
- * @returns {Promise<string>} Formatierte Routeninformation
+ * @returns {Promise<object>} Objekt mit Erfolg oder Fehlermeldung
  */
 export async function calculateRouteToDestination(startLat, startLon, destination) {
   try {
@@ -38,7 +38,7 @@ export async function calculateRouteToDestination(startLat, startLon, destinatio
     
     if (!destination || destination.trim() === '') {
       console.error("Leerer Zielort!");
-      return "Ich konnte keinen Zielort identifizieren. Bitte gib einen klaren Ortsnamen an.";
+      return { success: false, message: "Ich konnte keinen Zielort identifizieren. Bitte gib einen klaren Ortsnamen an." };
     }
 
     // Entferne überflüssige Wörter und Interpunktion vom Zielnamen für bessere Suchergebnisse
@@ -52,7 +52,7 @@ export async function calculateRouteToDestination(startLat, startLon, destinatio
     const destinationCoords = await getCoordinatesFromName(cleanDestination);
     if (!destinationCoords) {
       console.error("Keine Koordinaten gefunden für:", cleanDestination);
-      return `Ich konnte "${destination}" leider nicht auf der Karte finden. Bitte versuche es mit einem bekannteren Ortsnamen.`;
+      return { success: false, message: `Ich konnte "${destination}" leider nicht auf der Karte finden. Bitte versuche es mit einem bekannteren Ortsnamen.` };
     }
     
     console.log("Zielkoordinaten gefunden:", destinationCoords);
@@ -65,35 +65,41 @@ export async function calculateRouteToDestination(startLat, startLon, destinatio
 
     if (!routeInfo) {
       console.error("Keine Route berechnet für:", cleanDestination);
-      return `Ich konnte leider keine Route nach ${destination} berechnen. Die Strecke ist möglicherweise zu lang oder nicht mit dem Auto erreichbar.`;
+      return { success: false, message: `Ich konnte leider keine Route nach ${destination} berechnen. Die Strecke ist möglicherweise zu lang oder nicht mit dem Auto erreichbar.` };
     }
 
     // Formatiere schöne Ausgabe
-    const { distance, duration, destination_name } = routeInfo;
-    const distanceKm = (distance / 1000).toFixed(1);
+    const { distance, duration, destination_name } = routeInfo; // distance in meters, duration in minutes
+    const distanceKmString = (distance / 1000).toFixed(1);
     
-    let durationText;
+    let durationTextString;
     if (duration < 60) {
-      durationText = `etwa ${Math.round(duration)} Minuten`;
+      durationTextString = `etwa ${Math.round(duration)} Minuten`;
     } else {
       const hours = Math.floor(duration / 60);
       const minutes = Math.round(duration % 60);
-      durationText = `etwa ${hours} Stunde${hours > 1 ? 'n' : ''}`;
+      durationTextString = `etwa ${hours} Stunde${hours > 1 ? 'n' : ''}`;
       if (minutes > 0) {
-        durationText += ` und ${minutes} Minute${minutes > 1 ? 'n' : ''}`;
+        durationTextString += ` und ${minutes} Minute${minutes > 1 ? 'n' : ''}`;
       }
     }
 
-    const displayName = destination_name || destinationCoords.name || destination;
+    const finalDisplayName = destination_name || destinationCoords.name || destination;
     
-    console.log("Route erfolgreich berechnet:", { distance: distanceKm, duration: durationText });
+    console.log("Route erfolgreich berechnet:", { distance: distanceKmString, duration: durationTextString });
 
-    return `🧭 Route nach ${displayName}:\n` +
-           `Die Entfernung beträgt ${distanceKm} km.\n` +
-           `Die geschätzte Fahrzeit beträgt ${durationText}.`;
+    return {
+        success: true,
+        data: {
+            displayName: finalDisplayName,
+            distanceKm: distanceKmString, // e.g., "12.3"
+            durationText: durationTextString
+        }
+    };
   } catch (error) {
     console.error("Fehler bei Routenberechnung:", error);
-    return `Bei der Berechnung der Route nach "${destination}" ist ein Fehler aufgetreten. Details: ${error.message}`;
+    // This catch is for unexpected errors during the process (e.g. network issues in sub-functions if not caught there)
+    return { success: false, message: `Bei der Berechnung der Route nach "${destination}" ist ein technischer Fehler aufgetreten. Details: ${error.message}` };
   }
 }
 

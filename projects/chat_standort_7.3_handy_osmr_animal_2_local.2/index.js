@@ -255,7 +255,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  // Add event listener for clear history button
   clearHistoryButton.addEventListener('click', () => {
     if (confirm('Möchtest du wirklich deinen gesamten Standortverlauf löschen?')) {
       const success = locationHistory.clearHistory();
@@ -263,13 +262,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (success) {
         displayMessage('system-info', '✓ Dein Standortverlauf wurde erfolgreich gelöscht!', false, true);
         
-        // Add system message to inform AI about the cleared history
         messageHistory.messages.push({
           role: 'system',
           content: 'Der Benutzer hat soeben seinen Standortverlauf gelöscht. Falls er nach seinem Verlauf fragt, informiere ihn, dass dieser gelöscht wurde und noch keine neuen Einträge vorhanden sind.'
         });
         
-        // Add user-facing message
         const clearMessage = {
           role: 'assistant',
           content: 'Ich habe deinen Standortverlauf gelöscht. Alle bisherigen Standortdaten wurden entfernt.'
@@ -298,21 +295,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     chatHistoryElement.scrollTop = chatHistoryElement.scrollHeight;
   }
 
+  // ===== KORRIGIERTER BLOCK 1: getLLMResponse() =====
+  // Die redundante Tier-Logik wurde entfernt, um Verwirrung zu vermeiden.
   async function getLLMResponse() {
     try {
       let apiRequestBody = { messages: [...messageHistory.messages] };
-      
-      if (selectedAnimal) {
-        const animalName = document.querySelector(`.animal-option[data-animal="${selectedAnimal}"]`).textContent;
-        const animalVerb = animalTravelDescriptions[selectedAnimal];
-        const tempAnimalContext = {
-          role: 'system',
-          content: `WICHTIG: Aktuelle Tierauswahl ist ${animalName}. Bei Fragen nach Entfernungen oder Fahrtzeiten berücksichtige, dass eine ${animalName} ${animalVerb} und nicht fährt.`
-        };
-        apiRequestBody.messages.push(tempAnimalContext);
-      }
   
-      const response = await fetch(llmImageApiEndpoint, {
+      const response = await fetch(apiEndpoint, { // Changed from llmImageApiEndpoint to apiEndpoint
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(apiRequestBody)
@@ -328,10 +317,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       const json = await response.json();
       if (json.completion?.choices?.[0]?.message) {
         const assistantMessage = json.completion.choices[0].message;
-        
-        // --- ROUTE CALCULATION LOGIK ENTFERNT ---
-        // Die alte Logik zum Anhängen des Verlaufs und zur Routenberechnung wurde entfernt.
-        // Die korrekte Logik befindet sich jetzt im 'submit'-Event Listener.
         
         messageHistory.messages.push(assistantMessage);
         displayMessage(assistantMessage.role, assistantMessage.content);
@@ -349,6 +334,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
+  // ===== KORRIGIERTER BLOCK 2: formElement.addEventListener() =====
+  // Enthält die neue Logik für Routenfragen, striktere Prompts und Fehlerbehandlung.
   formElement.addEventListener('submit', async (event) => {
     event.preventDefault();
     const content = inputElement.value.trim();
@@ -358,25 +345,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     messageHistory.messages.push({ role: 'user', content: content });
     displayMessage('user', content);
 
-    // --- NEUE LOGIK START ---
-
     const userQuery = content.toLowerCase();
     const routeKeywords = ['wie weit', 'wie lange', 'entfernung', 'distanz', 'route', 'weg', 'fahrt', 'fahren', 'komme ich'];
     const prepositions = ['nach', 'zu', 'bis', 'in'];
     const hasRouteKeyword = routeKeywords.some(keyword => userQuery.includes(keyword));
     const hasPreposition = prepositions.some(prep => userQuery.includes(prep + ' '));
 
-    // 1. Prüfen, ob der Nutzer eine Route wissen will
     if (hasRouteKeyword && hasPreposition && userPosition) {
       let destination = '';
-      // Simple Logik zur Extraktion des Ziels (kann verbessert werden)
       for (const prep of prepositions) {
         if (userQuery.includes(' ' + prep + ' ')) {
-          // Ensure we split correctly and get the part after the preposition
           let potentialDestination = userQuery.split(' ' + prep + ' ')[1];
           if (potentialDestination) {
             destination = potentialDestination.split(/[?.!]|von|und|oder/)[0].trim();
-            // Remove trailing common words that might not be part of the destination
             destination = destination.replace(/\s+(jetzt|dann|heute|morgen|schnell|bald)$/i, '').trim();
           }
           break;
@@ -385,60 +366,72 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       if (destination) {
         try {
-          // 2. Route BERECHNEN, BEVOR die LLM gerufen wird
-          const routeInfo = await calculateRouteToDestination(userPosition.latitude, userPosition.longitude, destination);
-          
-          let modifiedRouteInfo = routeInfo; // Default to original OSMR output
-          
-          // HIER: Logik für Tier-Geschwindigkeiten anwenden, falls nötig
-          if (selectedAnimal) {
-            // Extract distance from routeInfo (assuming it's in the format "Die Entfernung beträgt X km.")
-            const distanceMatch = routeInfo.match(/Die Entfernung beträgt ([\d,\.]+) km/);
-            if (distanceMatch && distanceMatch[1]) {
-              const distance = parseFloat(distanceMatch[1].replace(',', '.'));
+          const routeResult = await calculateRouteToDestination(userPosition.latitude, userPosition.longitude, destination);
+          let systemMessageForLLM;
+
+          if (routeResult.success) {
+            const routeData = routeResult.data;
+            let finalDestinationName = routeData.displayName;
+            let finalDistanceStr = `${routeData.distanceKm} km`;
+            let finalTimeStr = routeData.durationText;
+            let perspectiveDetail = "mit dem Auto";
+            let exampleSentence = `Klar doch! Die Route nach ${finalDestinationName} ist ${finalDistanceStr} lang. Die geschätzte Fahrzeit beträgt ${finalTimeStr}.`;
+
+            if (selectedAnimal) {
+              const distanceNum = parseFloat(routeData.distanceKm);
               const animalSpeed = animalSpeeds[selectedAnimal] || animalSpeeds.default;
               const animalVerb = animalTravelDescriptions[selectedAnimal] || animalTravelDescriptions.default;
-              const timeInHours = distance / animalSpeed;
-              let timeDescription;
+              const timeInHours = distanceNum / animalSpeed;
+              let animalTimeDescription;
 
               if (timeInHours < 1) {
-                timeDescription = `etwa ${Math.round(timeInHours * 60)} Minute(n)`;
+                animalTimeDescription = `etwa ${Math.round(timeInHours * 60)} Minute(n)`;
               } else if (timeInHours < 24) {
                 const hours = Math.floor(timeInHours);
                 const minutes = Math.round((timeInHours - hours) * 60);
-                timeDescription = `etwa ${hours} Stunde(n)${minutes > 0 ? ` und ${minutes} Minute(n)` : ''}`;
+                animalTimeDescription = `etwa ${hours} Stunde(n)${minutes > 0 ? ` und ${minutes} Minute(n)` : ''}`;
               } else {
                 const days = Math.floor(timeInHours / 24);
                 const remainingHours = Math.floor(timeInHours % 24);
-                timeDescription = `etwa ${days} Tag(e)${remainingHours > 0 ? ` und ${remainingHours} Stunde(n)` : ''}`;
+                animalTimeDescription = `etwa ${days} Tag(e)${remainingHours > 0 ? ` und ${remainingHours} Stunde(n)` : ''}`;
               }
               
               const animalName = document.querySelector(`.animal-option[data-animal="${selectedAnimal}"]`).textContent;
-              // Construct the animal-specific route information
-              modifiedRouteInfo = `Route als ${animalName} nach ${destination}:\n` +
-                                  `Die Entfernung beträgt ${distance.toFixed(1)} km.\n` +
-                                  `Eine ${animalName} ${animalVerb} diese Strecke in ${timeDescription}.`;
+              finalDestinationName = destination; // Use user's raw destination for animal context
+              finalDistanceStr = `${distanceNum.toFixed(1)} km`;
+              finalTimeStr = animalTimeDescription;
+              perspectiveDetail = `als ${animalName} (${animalVerb})`;
+              exampleSentence = `Verstanden! Nach ${finalDestinationName} sind es ${finalDistanceStr}. Als ${animalName} ${animalVerb} du dafür ungefähr ${finalTimeStr}.`;
             }
-          }
-          
-          // 3. Ergebnis als System-Kontext für die LLM bereitstellen
-          messageHistory.messages.push({
-            role: 'system',
-            content: `SYSTEM-HINWEIS: Der Nutzer fragt nach einer Route. Hier sind die exakten Daten von OSMR für das Ziel "${destination}". Formuliere eine freundliche Antwort basierend auf diesen Daten:\n\n${modifiedRouteInfo}`
-          });
+            
+            systemMessageForLLM = `SYSTEM-HINWEIS: Der Nutzer fragt nach einer Route. Formuliere eine freundliche Antwort basierend auf den folgenden exakten Daten. Erfinde nichts dazu und verwende genau diese Werte.
+Ziel: ${finalDestinationName}
+Entfernung: ${finalDistanceStr}
+Zeitangabe: ${finalTimeStr}
+Perspektive/Transportmittel: ${perspectiveDetail}
 
-        } catch (error) {
-          console.error("Fehler bei der Routenberechnung vor dem LLM-Call:", error);
-          // Informiere die LLM, dass ein Fehler aufgetreten ist
+Formuliere eine Antwort, die diese Informationen natürlich einbindet. Hier ein Beispiel, wie du antworten könntest: "${exampleSentence}"`;
+
+          } else { // routeResult.success is false
+            systemMessageForLLM = `SYSTEM-HINWEIS: Bei der Routenberechnung nach "${destination}" gab es ein Problem. **Informiere den Nutzer darüber und gib die folgende Meldung von unserem Routensystem weiter: "${routeResult.message}"**. Gib keine eigenen Schätzungen ab oder versuche, die Route trotzdem zu beschreiben.`;
+          }
+          messageHistory.messages.push({ role: 'system', content: systemMessageForLLM });
+
+        } catch (error) { // Catch errors from calculateRouteToDestination if it throws unexpectedly
+          console.error("Fehler bei der Routenberechnung (catch block in index.js):", error);
           messageHistory.messages.push({
             role: 'system',
-            content: `SYSTEM-HINWEIS: Bei der Routenberechnung nach "${destination}" ist ein Fehler aufgetreten. Informiere den Nutzer darüber und sage ihm, dass du keine Route finden konntest. Fehlerdetails: ${error.message}`
+            content: `SYSTEM-HINWEIS: Bei der Routenberechnung nach "${destination}" ist ein technischer Fehler aufgetreten. **Informiere den Nutzer, dass du die Route im Moment nicht finden konntest.** Gib keine Schätzungen ab. Interne Fehlerdetails (nicht für den Nutzer): ${error.message}`
           });
         }
+      } else {
+        messageHistory.messages.push({
+            role: 'system',
+            content: `SYSTEM-HINWEIS: Der Nutzer scheint nach einer Route zu fragen, aber es wurde kein klares Ziel genannt. **Frage den Nutzer höflich, zu welchem genauen Zielort er eine Route möchte.**`
+        });
       }
     }
 
-    // Prüfen, ob nach der Historie gefragt wird (deine bestehende Logik)
     const historyKeywords = [
         'wo war ich', 'frühere standorte', 'standortverlauf', 'meine orte', 
         'bisherige orte', 'letzte orte', 'standorthistorie', 'wo ich war',
@@ -447,14 +440,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     ];
 
     if (historyKeywords.some(keyword => userQuery.includes(keyword))) {
-        // Wenn der Nutzer nach dem Verlauf fragt, fügen wir die Daten zum Kontext hinzu.
         const formattedHistory = locationHistory.getFormattedHistory();
         messageHistory.messages.push({
             role: 'system',
             content: `Hier ist die vom Nutzer gespeicherte Standorthistorie. Deine Aufgabe ist es, diese Liste für den Nutzer freundlich aufzubereiten und als Antwort auszugeben:\n\n${formattedHistory}`
         });
     }
-    // --- NEUE LOGIK ENDE ---
     
     await getLLMResponse();
   });
@@ -470,7 +461,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       longitude: position.longitude
     });
 
-    // --- SYSTEM-PROMPT ANGEPASST ---
     const systemPromptContent = `Du bist mein freundlicher und präziser Navigationsassistent. 
     
     WICHTIG - NUTZERDATEN VON OPENSTREETMAP/OSMR:
@@ -492,18 +482,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     - Wenn ein mensch asugewählt wurde: antworte als ob du ein mensch wärst. menschen gehen mit 3 bis 4 km/h.
     
     WICHTIG - BILDANALYSE:
-    Wenn der Benutzer ein Bild sendet, beschreibe was du auf dem bild siehst. du musst keine Personen erkennen. UND sage wo er sich befindet in EINER zusammenhängenden Antwort.
+    Wenn der Benutzer ein Bild sendet, beschreibe das Bild UND sage wo er sich befindet in EINER zusammenhängenden Antwort.
     Ziehe schlussfolgerungen aud dem bild und den osmr daten. wenn das bild zum beispiel einen Bahnhof zeigt und du anhand der osmr daten weisst in welcher Stadt ich bin. so kombiniere diese informationen zu einer logischen schlussfolgerung.
     Format etwa: "Auf dem Bild sehe ich [Beschreibung]. Du befindest dich in/an [präziser Standort mit Straße und Hausnummer wenn möglich]."
     
     Antworte immer auf Deutsch.`;
-    // --- ÄNDERUNG ENDE ---
 
     messageHistory.messages.unshift({ role: 'system', content: systemPromptContent });
 
     const greetingMessage = {
       role: 'assistant',
-      content: 'Hallo! Ich bin dein Navigationsassistent. Du kannst mir gerne ein aktuelles Bild von deiner Umgebung schicken, ich sage dir wo du bist. Mit dem "Animal"-Button kannst du auswählen, ob du Entfernungen für eine Ameise, einen Vogel, einen Löwen oder einem Menschen berechnen möchtest. Ich speichere außerdem deine Standorte - frag mich einfach, wo du in letzter Zeit warst. Wenn du deinen Standortverlauf löschen möchtest, klicke auf den "Mülleimer"-Button. Wie kann ich dir helfen?',
+      content: 'Hallo! Ich bin dein Navigationsassistent. Du kannst mir gerne ein aktuelles Bild von deiner Umgebung schicken, ich sage dir wo du bist. Mit dem "Animal"-Button kannst du auswählen, ob du Entfernungen für eine Ameise, einen Vogel, einen Löwen oder einem Menschen berechnen möchtest. Ich speichere außerdem deine Standorte - frag mich einfach, wo du in letzter Zeit warst.',
     };
     messageHistory.messages.push(greetingMessage);
     displayMessage(greetingMessage.role, greetingMessage.content);
@@ -519,15 +508,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     displayMessage('system-info', `Standortfehler: ${error.message}`, true);
   }
 });
-
-
-
-
-
-
-
-
-
 
 
 
