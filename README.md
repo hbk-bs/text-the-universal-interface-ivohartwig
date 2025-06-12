@@ -22,5 +22,5 @@ To make the project more engaging and entertaining, I also added a feature that 
 
 
 
-### [NAVIGATION CHAT](https://hbk-bs.github.io/text-the-universal-interface-ivohartwig/projects/chat_standort_7.3_handy_osmr_animal_2_local/)
+### [NAVIGATION CHAT](https://hbk-bs.github.io/text-the-universal-interface-ivohartwig/projects/chat_standort_7.3_handy_osmr_animal_2_loca.2/)
 
