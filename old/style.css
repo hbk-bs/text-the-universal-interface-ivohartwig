@@ -1,0 +1,256 @@
+/*css reset soft*/
+
+* {
+	margin: 0;
+	padding: 0;
+	border: 0; /* Setzt margin, padding und border für alle Elemnte auf 0 */
+	box-sizing: border-box;  /* box-sizing wird auf border-box geändert, damit padding und border in die Gesamtgröße eines Elements mit eingerechnet werden */
+  }
+  
+  img, video {
+	max-width: 100%; /* Verhindert das Bilder usw. über übergeordnete Elemente hinaus gehen*/
+	height: auto; /* So wird das Seitenverhältnis festgelegt */
+  }
+  
+  ul, ol {
+	list-style: none; /* 
+  Entfernt die Listensymbole bei ungeordneten und geordneten Listen, so können hier eigene Sytle verwendet werden
+  */
+  }
+  
+  a {
+	text-decoration: none; /* 
+  Setzt die Standardstile von Links zurück und entfernt die Unterstreichung.
+  */
+  }
+  
+  html {
+	line-height: 1.5; /* 1 */
+	-webkit-text-size-adjust: 100%; /* 2 */
+  /**
+   * 1. Correct the line height in all browsers.
+   * 2. Prevent adjustments of font size after orientation changes in iOS.
+   */
+  }
+  
+  small {
+	font-size: 80%;
+  /**
+   * Add the correct font size in all browsers.
+   */
+  }
+  
+  /*css reset soft end*/
+  
+  body {
+	  max-width: 900px;
+	  margin: 0 auto;
+	  font-family:sans-serif;
+    background-color:white;
+	   }
+  
+  
+  /* header style */
+  header {
+	background-color:#515251;
+	border-radius:10px;
+	padding: 10px;
+	margin:15px;
+  }
+  
+  h1 {
+	text-align:center;
+	color:white;
+  }
+  
+  header p {
+	text-align:center;
+	color:white;
+  }
+  
+  header ul {
+	text-align:center;
+	margin-top:15px;
+	font-weight:bold;
+  }
+  
+  header ul li a {
+	  list-style: none;
+	  color:white;
+	}
+  
+  header ul li a:hover {
+	font-size:105%;
+  }
+  
+  .header{
+	display:flex;
+	flex-direction:row;
+	justify-content:space-evenly;
+  }
+  
+  .NAVWEB {
+  background-color:#989898c7;
+  margin:15px;
+  padding: 1px;
+  border-radius: 10px;
+  }
+
+  .NAVWEB2 {
+    background-color:#989898c7;
+    margin:15px;
+    padding: 1px;
+    border-radius: 10px;
+    }
+
+  .navtext {
+    color: white;
+  }
+
+  .navtext:hover {
+    color: white;
+  }
+
+  .NAVWEB:hover {
+  background-color: black;
+  }
+  /* header style ends  */
+  
+  /* main style */
+  h2 {
+	text-align:center;
+	color:white;
+  }
+
+  h3 {
+    text-align:center;
+    color:white;
+  }
+
+  h3:hover {
+    text-decoration: underline;
+  }
+
+  .text {
+    text-align: left;
+    max-width: 800px; /* Begrenzung der Breite */
+    width: 80%; /* Anpassung an verschiedene Bildschirmgrößen */
+    margin: 0 auto; /* Zentrierung */
+    
+    
+}
+
+@media (max-width: 600px) {
+  .text {
+      width: 95%; /* Größere Breite auf kleineren Bildschirmen */
+      max-width: none; /* Falls max-width das Problem verursacht */
+      line-height: 1.2;
+  }
+}
+
+h4 {
+  margin-left: 20px;
+  margin-top: 30px;
+  font-style: italic;
+}
+
+h5 {
+  margin-left: 20px;
+  margin-top: 30px;
+  font-style: italic;
+}
+  
+  
+  
+  .INFO {
+	background-color: #515251;
+	margin:15px;
+  margin-top:15px;
+	padding: 10px;
+	border-radius: 10px;
+  color:white
+  }
+
+  .REFLECTION {
+    background-color: #515251;
+    margin:15px;
+    padding: 10px;
+    border-radius: 10px;
+    color:white
+    }
+
+    .REFLECTION p {
+      color:white;
+      margin:20px ;
+      }
+
+      .REFLECTION pre {
+        color:white;
+        margin:20px ;
+        }
+
+  
+
+   .THEMA {
+    margin:15px;
+    padding: 10px;
+    border-radius: 10px;
+    }
+  
+    .image-container2{
+      display: flex;
+      flex-direction:column;
+      align-items: center;
+      justify-content: center;  
+      flex-wrap: wrap;
+      }
+    
+      .p5 {
+        padding:10px;
+        height:auto;
+        border-radius: 20px;
+        width: 300px
+        }
+
+        .iframe-p5 {
+          padding: 10px;
+          border-radius: 20px;
+          width: 300px;
+          height: auto;
+          aspect-ratio: 3 / 2; /* falls nötig für saubere Darstellung */
+          border: none;
+          overflow: hidden;
+        }
+  
+        figcaption { 
+          text-align:center;
+          color:black;
+          margin-bottom:15px;
+          }
+
+          
+  
+  /* main style ends */
+  
+  /* footer style */
+  .footer {
+    display: flex;
+    justify-content: center; 
+    align-items: center;   
+    
+  }
+  
+  .me {
+    max-width: 60px; 
+    height: auto;  
+  }
+  
+  /* footer style ends */
+  
+  @media(max-width: 600px) {
+	  body {
+		  width: auto;
+	  }
+   
+  }
+  

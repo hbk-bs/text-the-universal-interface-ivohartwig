@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<link rel="icon" type="image/svg+xml" href="favicon.svg" />
+
+		<title>{the universal interface}</title>
+		<link rel="stylesheet" href="style.css" />
+		<style>
+			/* Custom styling for links */
+			section.INFO a, section.REFLECTION a {
+				color: inherit; /* Uses the parent text color */
+				text-decoration: none; /* Removes the underline */
+			}
+			/* Apply hover effect only to links that are not direct h3 children */
+			section.INFO a:not(h3):hover, section.REFLECTION a:not(h3):hover {
+				text-decoration: none; /* Optional: adds underline on hover */
+			}
+			/* Make sure h3 links never get underlined on hover */
+			section.INFO a h3:hover, section.REFLECTION a h3:hover, 
+			section.INFO h3 a:hover, section.REFLECTION h3 a:hover {
+				text-decoration: none;
+				}
+			/* Explicitly target the REFLECTION h3 */
+			section.REFLECTION > h3:hover {
+				text-decoration: none !important;
+			}
+			section.REFLECTION > h3 {
+				text-decoration: none !important;
+			}
+		</style>
+	</head>
+
+
+	<header>
+
+		<div id="backlink">
+			<style>
+				#backlink {
+					--color-accent: hsl(198, 100%, 50%);
+					position: absolute;
+					top: 8px;
+					right: 8px;
+					border: 1px dashed black;
+					background-color: white;
+					padding: 8px;
+					cursor: pointer;
+					color: black;
+					font-size: 0.8rem;
+					font-weight: bold;
+					transition: all 0.3s ease;
+					transform: rotate(-2deg) scale(0.9);
+					box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.5);
+					a {
+						text-decoration: none;
+						color: black;
+						color: inherit;
+						text-decoration: underline;
+						background-image: linear-gradient(to right,
+								var(--color-accent) 0%,
+								var(--color-accent) 100%);
+						background-size: 0% 100%;
+						background-position: left center;
+						background-repeat: no-repeat;
+						transition: background-size 0.2s ease-in-out;
+						padding: 0.5rem;
+					}
+					a:hover {
+						background-size: 100% 100%;
+						color: white;
+					}
+	
+				}
+				#backlink:hover {
+					transform: rotate(2deg) scale(1);
+				}
+			</style>
+			<a href="https://rundgang2025.qawsed.site">Back to the Rundgang 2025</a>
+		</div>
+		<div class="header">
+		 <h1> THE UNIVERSAL INTERFACE </h1>
+		</div>
+	</header>
+	  
+	<main>
+
+		<section class="REFLECTION">
+		<h3>REFLECTION</h3>
+		<div class="text">
+			<h4>TASK</h4>
+			<p>This project explores the creation of a speculative, beautiful, and meaningful web-based experience that interacts with users through a Large Language Model (LLM). Users provide inputs—text, images, location, or other data—which the model transforms into unexpected and poetic responses. In the first phase, different LLMs are explored, small prototypes are built, and prompt engineering techniques are practiced. The second phase focuses on developing the core concept and interaction flow. Finally, the project is refined visually, tested with real users, and polished into a playful, thoughtful digital experience.</p>
+			<h4>WHAT IS A LLM ?</h4>
+			<p>An LLM (Large Language Model) is an advanced AI system trained on large-scale text data using the Transformer architecture, which allows it to process and generate human-like language. It works by analyzing the context of a given input and predicting the most likely next word or sequence of words. Through this process, it can generate coherent text, answer questions, translate languages, and more. While it captures complex patterns and relationships in language, it does not possess real understanding or consciousness.</p>
+			<h4>WHAT IS AN API ?</h4>
+			<p>An API (Application Programming Interface) is a standardized interface that allows different software systems to communicate with each other. In my case, the API is used to retrieve information from OpenStreetMap and present it in a format that the LLM can understand — such as address data or geographical distances.</p>
+			<h4>IDEA</h4>
+			<p>My original idea was to develop a chat interface with a Large Language Model (LLM) that could assist me with location and navigation questions. To make this possible, I needed to transmit my current location to the model. However, I quickly realized that an LLM can't do much with raw coordinates, like those retrieved from a browser. It lacks direct access to external maps or geodata services that would allow it to translate this information into understandable text.
+				To solve this, I integrated an interface to the OpenStreetMap API for what is known as "reverse geocoding." In this process, the coordinates are sent to OpenStreetMap, and the API converts them into readable addresses or location descriptions. These details are then provided to the LLM in advance.
+				Additionally, I implemented another API that gives the model access to map data. This allows the chat interface to answer questions about distances and directions — for example, "How do I get to a specific place?"
+				To make the project more engaging and entertaining, I also added a feature that lets users choose their mode of transportation — for instance, as a human, a bird, or even an ant. This way, users can playfully explore how long a route would take depending on their form of movement.</p>
+		</div>
+
+		</section>
+
+		<section class="REFLECTION">
+			<a href="https://hbk-bs.github.io/text-the-universal-interface-ivohartwig/projects/chat_standort_7.3_handy_osmr_animal_2_local.2/">
+				<section class="NAVWEB">
+					<h2 id="MENU" class="navtext">LLM CHAT</h2>
+				</section>
+			</a>
+		</section>
+		
+	 </main>
+
+	<footer class="footer">
+		<img class="me" src="https://hbk-bs.github.io/the-archives-ivohartwig/assets/images/Webbrille.png" alt="Webbrille">
+	</footer>

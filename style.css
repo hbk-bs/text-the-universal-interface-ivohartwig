@@ -39,8 +39,7 @@
    * Add the correct font size in all browsers.
    */
   }
-  
-  /*css reset soft end*/
+   /*css reset soft end*/
   
   body {
 	  max-width: 900px;
@@ -48,191 +47,107 @@
 	  font-family:sans-serif;
     background-color:white;
 	   }
-  
-  
-  /* header style */
-  header {
-	background-color:#515251;
-	border-radius:10px;
-	padding: 10px;
-	margin:15px;
-  }
-  
-  h1 {
-	text-align:center;
-	color:white;
-  }
-  
-  header p {
-	text-align:center;
-	color:white;
-  }
-  
-  header ul {
-	text-align:center;
-	margin-top:15px;
-	font-weight:bold;
-  }
-  
-  header ul li a {
-	  list-style: none;
-	  color:white;
-	}
-  
-  header ul li a:hover {
-	font-size:105%;
-  }
-  
-  .header{
-	display:flex;
-	flex-direction:row;
-	justify-content:space-evenly;
-  }
-  
-  .NAVWEB {
-  background-color:#989898c7;
-  margin:15px;
-  padding: 1px;
-  border-radius: 10px;
-  }
 
-  .NAVWEB2 {
-    background-color:#989898c7;
+/* main style */
+  main {
+    background-color:lightgray;
+    border-radius:10px;
+    padding: 10px;
+    margin:15px;
+    }
+    
+    h1 {
+    text-align:center;
+    color:black;
+    }
+    
+    .info {
+    text-align:center;
+    color:black;
+    font-style: italic;
+    }
+
+    .repo {
+    text-align:center;
+    color:black;
+    font-style: italic;
+    text-decoration: underline;
+    }
+    
+    .header{
+    display:flex;
+    flex-direction:row;
+    justify-content:space-evenly;
+    }
+    
+    .Space {
+    background-color:black;
     margin:15px;
     padding: 1px;
     border-radius: 10px;
     }
 
-  .navtext {
-    color: white;
-  }
+    @media (max-width: 600px) {
+    .text {
+      width: 95%; /* Größere Breite auf kleineren Bildschirmen */
+      max-width: none; /* Falls max-width das Problem verursacht */
+      line-height: 1.2;
+    }
+    }
 
-  .navtext:hover {
-    color: white;
-  }
+    h4 {
+    margin-top: 30px;
+    margin-bottom:15px;
+    font-style: italic;
+    color: black;
+    }
 
-  .NAVWEB:hover {
-  background-color: black;
-  }
-  /* header style ends  */
-  
-  /* main style */
-  h2 {
-	text-align:center;
-	color:white;
-  }
-
-  h3 {
-    text-align:center;
-    color:white;
-  }
-
-  h3:hover {
-    text-decoration: underline;
-  }
-
-  .text {
+    .text {
     text-align: left;
     max-width: 800px; /* Begrenzung der Breite */
     width: 80%; /* Anpassung an verschiedene Bildschirmgrößen */
     margin: 0 auto; /* Zentrierung */
-    
-    
-}
-
-@media (max-width: 600px) {
-  .text {
-      width: 95%; /* Größere Breite auf kleineren Bildschirmen */
-      max-width: none; /* Falls max-width das Problem verursacht */
-      line-height: 1.2;
-  }
-}
-
-h4 {
-  margin-left: 20px;
-  margin-top: 30px;
-  font-style: italic;
-}
-
-h5 {
-  margin-left: 20px;
-  margin-top: 30px;
-  font-style: italic;
-}
-  
-  
-  
-  .INFO {
-	background-color: #515251;
-	margin:15px;
-  margin-top:15px;
-	padding: 10px;
-	border-radius: 10px;
-  color:white
-  }
-
-  .REFLECTION {
-    background-color: #515251;
-    margin:15px;
-    padding: 10px;
-    border-radius: 10px;
-    color:white
+    color: black;
     }
 
-    .REFLECTION p {
-      color:white;
-      margin:20px ;
-      }
+    .REFLECTION { 
+    margin-top: 20px;
+    margin-bottom: 20px;
+    }
 
-      .REFLECTION pre {
-        color:white;
-        margin:20px ;
-        }
-
-  
-
-   .THEMA {
+    .NAVWEB {
+    background-color: rgba(255,255,255,0.25); /* helles, transparentes Grau */
     margin:15px;
-    padding: 10px;
+    padding: 1px;
     border-radius: 10px;
+    backdrop-filter: blur(12px) saturate(180%);
+    -webkit-backdrop-filte: blur(12px) saturate(180%);
+    border: 1px solid rgba(0, 0, 0, 0.35); /* subtiler weißer Rahmen */
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08); /* sanfter Schatten */
+    transition: background 0.3s, box-shadow 0.3s;
+    max-width: 800px;
+    width: 80%;
+    margin: 0 auto;
+    }
+    
+    .NAVWEB:hover {
+    background-color: rgba(255,255,255,0.4);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+    }
+
+    .navtext {
+    color: black;
+    text-align:center;
     }
   
-    .image-container2{
-      display: flex;
-      flex-direction:column;
-      align-items: center;
-      justify-content: center;  
-      flex-wrap: wrap;
-      }
-    
-      .p5 {
-        padding:10px;
-        height:auto;
-        border-radius: 20px;
-        width: 300px
-        }
+    .navtext:hover {
+    color: #989898c7;
+    font-style: italic;
+    }
+  
+ /* main style ends */
 
-        .iframe-p5 {
-          padding: 10px;
-          border-radius: 20px;
-          width: 300px;
-          height: auto;
-          aspect-ratio: 3 / 2; /* falls nötig für saubere Darstellung */
-          border: none;
-          overflow: hidden;
-        }
-  
-        figcaption { 
-          text-align:center;
-          color:black;
-          margin-bottom:15px;
-          }
-
-          
-  
-  /* main style ends */
-  
-  /* footer style */
+ /* footer style */
   .footer {
     display: flex;
     justify-content: center; 
@@ -244,13 +159,16 @@ h5 {
     max-width: 60px; 
     height: auto;  
   }
-  
   /* footer style ends */
+
+
   
   @media(max-width: 600px) {
 	  body {
 		  width: auto;
 	  }
-   
+    .NAVWEB {
+      width: 95%;
+      max-width: none;
+    }
   }
-  
