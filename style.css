@@ -117,7 +117,7 @@
 
     .NAVWEB {
     background-color: rgba(255,255,255,0.25); /* helles, transparentes Grau */
-    margin:15px;
+    margin:15px auto;
     padding: 1px;
     border-radius: 10px;
     backdrop-filter: blur(12px) saturate(180%);
@@ -127,7 +127,6 @@
     transition: background 0.3s, box-shadow 0.3s;
     max-width: 800px;
     width: 80%;
-    margin: 0 auto;
     }
     
     .NAVWEB:hover {
