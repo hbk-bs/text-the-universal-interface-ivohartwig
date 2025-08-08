@@ -152,6 +152,32 @@
       }
     }
 
+    .THEMA {
+      margin:15px;
+      padding: 10px;
+      border-radius: 10px;
+      }
+        
+      .image-container2{
+      display: flex;
+      flex-direction:row;  
+      justify-content:space-evenly;
+      flex-wrap: wrap;
+      }
+  
+      .p5 {
+      padding:10px;
+      height:auto;
+      border-radius: 20px;
+      width: 300px
+      }
+          
+      figcaption { 
+      text-align:center;
+      color:black;
+      margin-bottom:15px;
+      }
+
  /* main style ends */
 
  /* footer style */
