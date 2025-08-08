@@ -144,24 +144,6 @@
     font-style: italic;
     }
 
-    video {
-      padding: 10px;
-      height: auto; /* Change from fixed height to auto for responsive sizing */
-      border-radius: 20px;
-      width: 300px; /* Base width */
-      object-fit: contain; /* Changed from cover to contain to maintain aspect ratio */
-      display: block; /* Add block display for centering */
-      margin: 0 auto; /* Center the video */
-    }
-  
-    /* New video container styles for better responsiveness */
-    .video-container {
-      display: flex;
-      justify-content: center;
-      margin: 0 auto;
-      max-width: 100%;
-    }
-
     /* Responsive adjustments for video */
     @media(max-width: 600px) {
       video {
