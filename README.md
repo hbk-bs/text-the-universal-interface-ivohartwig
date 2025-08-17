@@ -5,4 +5,4 @@
 - A link to my Website about this Topic 
 - All of my little sketches 
 - A License 
-- A lot of work and Love <3
+- A lot of work and love <3
