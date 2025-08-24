@@ -205,3 +205,33 @@
       max-width: none;
     }
   }
+
+  .back-link {
+    position: fixed;
+    top: 15%;
+    left: 0;
+    transform: translateY(-50%);
+    z-index: 1000;
+  }
+  
+  .back-button {
+    width: 40px;
+    height: 40px;
+    background-color: white;
+    border-radius: 0 12px 12px 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: transform 0.2s ease;
+  }
+  
+  .back-button svg {
+    color: black;
+    width: 20px;
+    height: 20px;
+  }
+  
+  .back-button:hover {
+    transform: translateX(3px);
+  }
+  
